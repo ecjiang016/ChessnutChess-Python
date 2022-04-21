@@ -430,7 +430,11 @@ class Game:
         self.board[old_coord] = 0
         if self.board[new_coord] < 0: 
             self.delete_piece(old_coord+(self.player*8), self.color)
-        self.board[new_coord] = piece
+
+        if promotion: #Changes the new coord to the type of piece when a pawn is being promoted
+            self.board[new_coord] = promotion
+        else: #Changes the new coord to the piece that was at the old coord
+            self.board[new_coord] = piece
 
         #Disable castling on rook move
         if abs(self.board[old_coord]) == 4:
@@ -481,6 +485,8 @@ class Game:
              for i in range(len(self.white_pieces)):
                 if self.white_pieces[i].__class__ == Pawn:
                     self.white_pieces[i].en_passant = new_coord
+        
+        self.scenario()
         #Update player
         self.player *= -1
 
@@ -529,7 +535,6 @@ class Game:
          1,  1,  1,  1,  1,  1,  1,  1,
          4,  2,  3,  5,  6,  3,  2,  4
         ]
-        return self.board
     
 
     #Returns list in form [(old_coord, new_coord), ...]
