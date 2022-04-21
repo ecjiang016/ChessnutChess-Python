@@ -1,0 +1,569 @@
+
+"""
+Board is 1D NumPy memory view
+
+Piece type numbers:
+- Pawn: 1
+- Knight: 2
+- Bishop: 3
+- Rook: 4
+- Queen: 5
+- King: 6
+Positive for white, negative for Black
+"""
+
+import numpy as np
+
+def class_to_piece_number(class_name):
+    return {Pawn:1, Knight:2, Bishop:3, Rook:4, Queen:5, King:6}[class_name]
+ 
+def coords(pos):
+    """
+    Takes in 1D coords
+
+    Returns piece coords in tuple (x, y)
+    """
+    return pos % 8, pos // 8
+
+class King:
+    def __init__(self, pos, color):
+        self.pos = pos
+        self.color = color #1 for white, -1 for black
+        self.rook_castle = [True, True] #Left then right rook
+
+    def pin_check(self, board): 
+        """
+        Checks the pins
+        Gets rid of any directions and its opposite if the king is in check
+        """
+        pinned_pieces = []
+        directions = [-1, -9, -8, -7, 1, 9, 8, 7, -2, 2]
+        pin_directions = [-1, -9, -8, -7, 1, 9, 8, 7]
+        knight_directions = [-10, -17, -15, -6, 10, 17, 15, 6]
+        check = []
+        check_to_king = [] #The spaces that are in between the king the piece that is checking it
+        check_inline = [] #The spaces of the direction being checked (resets after each direction)
+        
+        
+        for d in range(8): #Loop over all directions
+            x = self.pos % 8 
+            y = self.pos // 8
+            check_pos = knight_directions[d] + self.pos
+            spaces_to_edge = [(x > 1) * (y > 0), (x > 0) * (y > 1), (x < 7) * (y > 1), (x < 6) * (y > 0), (x < 6) * (y < 7), (x < 7) * (y < 6), (x > 0) * (y < 6), (x > 1) * (y < 7)]
+            if spaces_to_edge[d]:
+                color_pos = board[check_pos] * self.color
+                if color_pos == -2:
+                    check.append(check_pos)
+
+            spaces_to_edge = [x, min(y, x), y, min(y, 7-x), 7-x, min(7-y, 7-x), 7-y, min(7-y, x)] 
+            possible_pin = 0
+            if spaces_to_edge[d]:
+                check_pos = directions[d] + self.pos
+                color_pos = board[check_pos] * self.color
+                if color_pos == -1 and (d == 1 or d == 3):
+                    check.append(check_pos)
+
+                for space in range(1, spaces_to_edge[d]+1): #Loop until you hit an opposing piece
+                    check_pos = space * directions[d] + self.pos
+                    color_pos = board[check_pos] * self.color
+                    check_inline.append(check_pos)
+                    if (color_pos == -3 or color_pos == -5) and d%2 == 1: #For Bishop and Queen moves
+                        if possible_pin == 1: #Piece is pinned
+                            pinned_pieces.append(pin_location)
+                            pin_directions[d] = 0
+                            break
+                        elif possible_pin == 0: #In check diagonally
+                            check.append(check_pos)
+                            check_to_king.append(check_inline)
+                            if space != 1: #Cannot take piece
+                                directions[d] = 0
+                            if d >= 4: #Does not allow king to move backward inline from the check
+                                directions[d-4] = 0
+                            if d <= 3: #Does not allow king to move backward inline from the check
+                                directions[d+4] = 0
+                                break
+                    elif (color_pos == -4 or color_pos == -5) and d%2 == 0: #For Rook and Queen moves
+                        if possible_pin == 1: #Piece is pinned
+                            pinned_pieces.append(pin_location)
+                            pin_directions[d] = 0
+                            break
+                        elif possible_pin == 0: #In check horizontally/vertically
+                            check.append(check_pos)
+                            check_to_king.append(check_inline)
+                            if space != 1: #Cannot capture piece since it is too far away for the king to capture
+                                directions[d] = 0
+                            if d >= 4: #Does not allow king to move backward inline from the check
+                                directions[d-4] = 0
+                            if d <= 3: #Does not allow king to move backward inline from the check
+                                directions[d+4] = 0
+                            break
+
+                    elif color_pos > 0: #Same color
+                        if possible_pin == 0: #May be a possible pin
+                            possible_pin = 1
+                            pin_location = check_pos
+                        else:
+                            break
+                check_inline = []
+        return pinned_pieces, directions, pin_directions, check, check_to_king
+
+    def possible_moves(self, board):
+        _, directions, _, _, _ = self.check_king_variable_thingy
+        castling = [True, True, True, True] #Left White, Right White, Left Black, Right Black
+        x = self.pos % 8 
+        y = self.pos // 8 
+        possible_spaces = []
+
+        spaces_to_edge = [x, min(y, x), y, min(y, 7-x), 7-x, min(7-y, 7-x), 7-y, min(7-y, x)]
+        new_directions = [-1, -9, -8, -7, 1, 9, 8, 7, -10, -17, -15, -6, 10, 17, 15, 6]
+        left_castle = True
+        right_castle = True
+        for d in range(10): #Loop over all directions
+            new_pos = directions[d] + self.pos #Sets a location to the new possible coordinate
+            if new_pos >= 0 and new_pos <= 63:
+                move = True #If this is true, player can move to new_pos
+                color_pos = board[new_pos] * self.color
+                x = new_pos % 8 
+                y = new_pos // 8 
+                spaces_to_edge = [x, min(y, x), y, min(y, 7-x), 7-x, min(7-y, 7-x), 7-y, min(7-y, x)]
+
+                if directions[d] != 0 and color_pos <= 0: #Does not allow the king's space to be a possible move
+                    if d == 8 and (color_pos < 0 or left_castle == False):
+                        move = False
+                    if d == 9 and (color_pos < 0 or right_castle == False):
+                        move = False
+                    if move == True:
+                        for f in range(16): #Loop over all directions for new coordinate
+                            
+                            check_pos = new_directions[f] + new_pos
+                            if not check_pos == self.pos and check_pos >= 0 and check_pos <= 63:
+                                color_pos = board[check_pos] * self.color
+                                spaces_to_edge = [x, min(y, x), y, min(y, 7-x), 7-x, min(7-y, 7-x), 7-y, min(7-y, x), 0, 0, 0, 0, 0, 0, 0, 0]
+
+                                if color_pos == -2 and f > 8: #For knight moves
+                                    move = False
+                                    break
+                                    
+                                else:
+                                    for space in range(1, spaces_to_edge[f]+1): #Loop until you hit an opposing piece
+                                        check_pos = space * new_directions[f] + new_pos
+                                        color_pos = board[check_pos] * self.color
+                                        if color_pos > 0: #Running into your own piece does not mean a check so king can move there
+                                            break
+
+                                        elif (color_pos == -4 or color_pos == -5) and f%2 == 0 and f <= 7: #For Rook and part of Queen moves
+                                            if d == 0:
+                                                left_castle = False
+                                            elif d == 4:
+                                                right_castle = False    
+                                            move = False
+                                            break
+
+                                        elif (color_pos == -3 or color_pos == -5) and f%2 == 1 and f <= 7: #For Bishop and other part of Queen moves
+                                            if d == 0:
+                                                left_castle = False
+                                            elif d == 4:
+                                                right_castle = False 
+                                            move = False
+                                            break
+
+                                        elif color_pos == -1 and space == 1 and f%2 == 1 and f <= 3: #For Pawn moves
+                                            if d == 0:
+                                                left_castle = False
+                                            elif d == 4:
+                                                right_castle = False 
+                                            move = False
+                                            break
+                                        
+                                        elif color_pos == -6 and space == 1 and f <= 7: #For King moves
+                                            if d == 0:
+                                                left_castle = False
+                                            elif d == 4:
+                                                right_castle = False 
+                                            move = False
+                                            break
+                                        elif d == 8 and (castling[1-self.color] == False or left_castle == False): #Left Castle
+                                            move = False
+                                            break
+
+                                        elif d == 9 and (castling[2-self.color] == False or right_castle == False): #Right Castle
+                                            move = False
+                    if move:
+                        possible_spaces.append(new_pos)
+        
+        return possible_spaces 
+class Rook:
+    def __init__(self, pos, color):
+        self.pos = pos
+        self.color = color #1 for white, -1 for black
+
+    def possible_moves(self, board):
+        pinned_location, _, pin_directions, _, check_to_king = self.check_king_variable_thingy
+
+        directions = [-1, -8, 1, 8]
+        x = self.pos % 8
+        y = self.pos // 8
+        spaces_to_edge = [x, y, 7-x, 7-y]
+
+        possible_spaces = []
+        for d in range(4): #Loop over all directions
+            for space in range(1, spaces_to_edge[d]+1): #Loop until you hit an opposing piece
+                check_pos = space * directions[d] + self.pos #Position being checked
+                color_pos = board[check_pos] * self.color #Positive if piece is friendy, negative if not
+                if check_to_king == []:
+                    if self.pos in pinned_location and pin_directions[d*2] == 0: #King is not in check
+                        if color_pos < 0:
+                            possible_spaces.append(check_pos) #Can capture
+                            break
+                        else:
+                            possible_spaces.append(check_pos)
+                    
+                    elif not self.pos in pinned_location:
+                        if color_pos > 0:
+                            break
+                        if color_pos < 0:
+                            possible_spaces.append(check_pos) #Can capture
+                            break
+                        else:
+                            possible_spaces.append(check_pos)
+                elif check_pos in check_to_king[0] and not self.pos in pinned_location and len(check_to_king) == 1: #Can capture the piece checking the king or block a check
+                    possible_spaces.append(check_pos)
+                    break
+
+        return possible_spaces 
+class Bishop:
+    def __init__(self, pos, color):
+        self.pos = pos
+        self.color = color #1 for white, -1 for black
+
+    def possible_moves(self, board):
+        pinned_location, _, pin_directions, _, check_to_king = self.check_king_variable_thingy
+
+        directions = [-9, -7, 9, 7]
+        x = self.pos % 8
+        y = self.pos // 8
+        spaces_to_edge = [min(y, x), min(y, 7-x), min(7-y, 7-x), min(7-y, x)]
+
+        possible_spaces = []
+
+        for d in range(4): #Loop over all directions
+            for space in range(1, spaces_to_edge[d]+1): #Loop until you hit an opposing piece
+                check_pos = space * directions[d] + self.pos  #Position being checked
+                color_pos = board[check_pos] * self.color #Positive if piece is friendy, negative if not
+                if check_to_king == []:
+                    if self.pos in pinned_location and pin_directions[d*2+1] == 0: #King is not in check
+                        if color_pos < 0:
+                            possible_spaces.append(check_pos) #Can capture
+                            break
+                        else:
+                            possible_spaces.append(check_pos)
+                    
+                    elif not self.pos in pinned_location:
+                        if color_pos > 0:
+                            break
+                        if color_pos < 0:
+                            possible_spaces.append(check_pos) #Can capture
+                            break
+                        else:
+                            possible_spaces.append(check_pos)
+                elif check_pos in check_to_king[0] and not self.pos in pinned_location and len(check_to_king) == 1: #Can capture the piece checking the king or block a check
+                    possible_spaces.append(check_pos)
+                    break
+
+        return possible_spaces
+class Knight:
+
+    def __init__(self, pos, color):
+        self.pos = pos
+        self.color = color #1 for white, -1 for black
+    
+    def possible_moves(self, board):
+        pinned_location, _, _, check_location, check_to_king = self.check_king_variable_thingy
+
+        directions = [-10, -17, -15, -6, 10, 17, 15, 6]
+        x = self.pos % 8
+        y = self.pos // 8
+        spaces_to_edge = [(x > 1) * (y > 0), (x > 0) * (y > 1), (x < 7) * (y > 1), (x < 6) * (y > 0), (x < 6) * (y < 7), (x < 7) * (y < 6), (x > 0) * (y < 6), (x > 1) * (y < 7)]
+        possible_spaces = []
+        if not self.pos in pinned_location: 
+            for d in range(8): #Loop over all directions
+                if spaces_to_edge[d]:
+                    check_pos = directions[d] + self.pos #Position being checked
+                    color_pos = board[check_pos] * self.color #Positive if piece is friendy, negative if not
+                    if color_pos <= 0 and check_location == []:
+                        possible_spaces.append(check_pos) #Can move to the space being checked
+
+                    elif len(check_to_king) == 1 and check_pos in check_to_king[0]: #Can block a check
+                        possible_spaces.append(check_pos)
+        return possible_spaces
+class Queen:
+
+    def __init__(self, pos, color):
+        self.pos = pos
+        self.color = color #1 for white, -1 for black
+
+    def possible_moves(self, board):
+        pinned_location, _, pin_directions, _, check_to_king = self.check_king_variable_thingy
+
+        directions = [-1, -9, -8, -7, 1, 9, 8, 7]
+        x = self.pos % 8 
+        y = self.pos // 8
+        spaces_to_edge = [x, min(y, x), y, min(y, 7-x), 7-x, min(7-y, 7-x), 7-y, min(7-y, x)]
+        possible_spaces = []
+        
+        for d in range(8): #Loop over all directions
+            for space in range(1, spaces_to_edge[d]+1): #Loop until you hit an opposing piece
+                check_pos = space * directions[d] + self.pos
+                color_pos = board[check_pos] * self.color
+                if check_to_king == []:
+                    if self.pos in pinned_location and pin_directions[d] == 0: #King is not in check
+                        if color_pos < 0:
+                            possible_spaces.append(check_pos) #Can capture
+                            break
+                        else:
+                            possible_spaces.append(check_pos)
+                    
+                    elif not self.pos in pinned_location:
+                        if color_pos > 0:
+                            break
+                        if color_pos < 0:
+                            possible_spaces.append(check_pos) #Can capture
+                            break
+                        else:
+                            possible_spaces.append(check_pos)
+                elif check_pos in check_to_king[0] and not self.pos in pinned_location and len(check_to_king) == 1: #Can capture the piece checking the king or block a check
+                    possible_spaces.append(check_pos)
+                    break
+
+        return possible_spaces
+class Pawn:
+
+    def __init__(self, pos, color):
+        self.pos = pos
+        self.color = color #1 for white, -1 for black
+        self.check_king_variable_thingy = None
+        self.en_passant = None
+
+    def possible_moves(self, board):
+        pinned_location, _, pin_directions, _, check_to_king = self.check_king_variable_thingy
+
+        directions = [-16 * self.color, -9 * self.color, -8 * self.color, -7 * self.color, -1, 1]
+        y = self.pos // 8
+        move_2 = True
+        possible_spaces = []
+        if not self.pos in pinned_location or abs(sum(pin_directions)) == 8:
+            check_pos = directions[2] + self.pos
+            color_pos = board[check_pos] * self.color
+            if color_pos == 0 and (check_to_king == [] or (check_pos in check_to_king[0] and len(check_to_king) == 1)): #Move one forward
+                possible_spaces.append(check_pos)
+            else: 
+                move_2 = False
+
+            check_pos = directions[0] + self.pos
+            color_pos = board[check_pos] * self.color
+            if not ((2 * y) - (5 * self.color) == 7):
+                move_2 = False
+            if color_pos == 0 and move_2 == True and (check_to_king == [] or (check_pos in check_to_king[0] and len(check_to_king) == 1)): #Can move two forward
+                possible_spaces.append(check_pos)
+
+        if not self.pos in pinned_location:
+            check_pos = directions[4] + self.pos
+            color_pos = board[check_pos] * self.color
+            if color_pos == -1 and (check_to_king == [] or check_to_king == [check_pos]) and y == (4 - self.color) and self.en_passant == check_pos: #En passant Left
+                possible_spaces.append(check_pos - (8 * self.color))
+
+            check_pos = directions[5] + self.pos
+            color_pos = board[check_pos] * self.color
+            if color_pos == -1 and check_to_king == [] and y == (4 - self.color) and self.en_passant == check_pos: #En passant Right
+                possible_spaces.append(check_pos - (8 * self.color))
+        
+        elif pinned_location == [] or (self.pos in pinned_location and pin_directions[1] == 0):
+            check_pos = directions[1] + self.pos
+            color_pos = board[check_pos] * self.color
+            if color_pos < 0: #Can capture diagonal left
+                possible_spaces.append(check_pos)
+
+        elif pinned_location == [] or self.pos in pinned_location and pin_directions[3] == 0:
+            check_pos = directions[3] + self.pos
+            color_pos = board[check_pos] * self.color
+            if color_pos < 0: #Can capture diagonal right
+                possible_spaces.append(check_pos)
+
+        return possible_spaces
+        
+class Game:
+    def __init__(self, board):
+        self.board = board
+        self.white_pieces = [
+            Pawn(48, 1), Pawn(49, 1), Pawn(50, 1), Pawn(51, 1), Pawn(52, 1), Pawn(53, 1), Pawn(54, 1), Pawn(55, 1),  
+            Rook(56, 1), Knight(57, 1), Bishop(58, 1), Queen(59, 1), King(60, 1), Bishop(61, 1), Knight(62, 1), Rook(63, 1),
+        ]
+        self.black_pieces = [
+            Rook(0, -1), Knight(1, -1), Bishop(2, -1), Queen(3, -1), King(4, -1), Bishop(5, -1), Knight(6, -1), Rook(7, -1),
+            Pawn(8, -1), Pawn(9, -1), Pawn(10, -1), Pawn(11, -1), Pawn(12, -1), Pawn(13, -1), Pawn(14, -1), Pawn(15, -1),  
+            ]
+        self.castling = [True, True, True, True] #Left White, Right White, Left Black, Right Black
+        self.en_passant = None
+        self.last_move = None
+        self.check_location = []
+        self.player = 1
+
+    def convert_to_board(self):
+        self.board = np.zeros((8, 8))
+        for piece in self.white_pieces:
+            x, y = coords(piece.pos)
+            self.board[y, x] = {Pawn:1, Knight:2, Bishop:3, Rook:4, Queen:5, King:6}[piece.__class__]
+
+        for piece in self.black_pieces:
+            x, y = coords(piece.pos)
+            self.board[y, x] = {Pawn:-1, Knight:-2, Bishop:-3, Rook:-4, Queen:-5, King:-6}[piece.__class__]
+            
+
+    def move(self, old_coord, new_coord, promotion=None):
+        piece = self.board[old_coord]
+        self.king_check()
+        #Get rid of pawn when En Passant
+        if self.board[new_coord] == 0 and abs(piece) == 1:
+            self.board[old_coord+(self.player*8)]
+            self.delete_piece(old_coord+(self.player*8), self.color)
+        #Move the piece on the board
+        self.board[old_coord] = 0
+        if self.board[new_coord] < 0: 
+            self.delete_piece(old_coord+(self.player*8), self.color)
+        self.board[new_coord] = piece
+
+        #Disable castling on rook move
+        if abs(self.board[old_coord]) == 4:
+            self.castling[{0:2, 7:3, 56:0, 63:1}[old_coord]] == False
+        
+        #Disable castling on king move
+        if abs(self.board[old_coord]) == 6:
+            self.castling[{4:2, 4:3, 60:0, 60:1}[old_coord]] == False
+
+        if self.player == 1: #White castle  
+            if new_coord == 58 and old_coord == 60 and piece == 6: #Left Castle
+                self.board[56] = 0
+                self.board[59] = 4
+            if new_coord == 62 and old_coord == 60 and piece == 6: #Right Castle
+                self.board[63] = 0
+                self.board[61] = 4
+
+        else: #Black castle
+            if new_coord == 2 and old_coord == 4 and piece == -6: #Left Castle
+                self.board[0] = 0
+                self.board[3] = -4
+            if new_coord == 6 and old_coord == 4 and piece == -6: #Right Castle
+                self.board[7] = 0
+                self.board[5] = -4
+            
+
+        
+        #Pass castling status to kings
+        if self.player == 1: #Update white king
+            for i in range(len(self.white_pieces)):
+                if self.white_pieces[i].__class__ == King:
+                    self.white_pieces[i].rook_castle = self.castling[0:2]
+                    break
+            
+        else: #Update black king
+            for i in range(len(self.white_pieces)):
+                if self.black_pieces[i].__class__ == King:
+                    self.white_pieces[i].rook_castle = self.castling[0:2]
+                    break
+
+        if abs(piece) == 1 and abs(new_coord - old_coord) == 16: #Checks for En Passant possibility
+            self.last_move = new_coord
+        else:
+            self.last_move = None
+
+        #Pass En passant status to pawns
+        if self.player == 1: #Update white pawns
+             for i in range(len(self.white_pieces)):
+                if self.white_pieces[i].__class__ == Pawn:
+                    self.white_pieces[i].en_passant = new_coord
+        #Update player
+        self.player *= -1
+
+    def en_passant_check(self):
+        pass
+
+    def king_check(self):
+        king_pos = np.argmax(self.board) * self.player
+        k = King(king_pos, self.player)
+        pinned_location, directions, pin_directions, self.check_location, check_to_king = k.pin_check(self.board)
+        
+        if self.player == 1: #Update white king
+            for white_piece in self.white_pieces:
+                white_piece.check_king_variable_thingy = pinned_location, directions, pin_directions, self.check_location, check_to_king
+            
+        else: #Update black king
+            for black_piece in self.black_pieces:
+                black_piece.check_king_variable_thingy = pinned_location, directions, pin_directions, self.check_location, check_to_king
+
+    def delete_piece(self, position, color):
+        if color == -1: #White piece
+            for i in range(len(self.white_pieces)):
+                if self.white_pieces[i].pos == position:
+                    piece_type = class_to_piece_number(self.white_pieces[i].__class__)
+                    del self.white_pieces[i]
+                    break
+
+        else: #Black piece
+            for i in range(len(self.black_pieces)):
+                if self.black_pieces[i].pos == position:
+                    piece_type = class_to_piece_number(self.white_pieces[i].__class__)
+                    del self.black_pieces[i]
+                    break
+
+        if piece_type * color == self.board[position]: #Fail safe to correctly update self.board
+            self.board[position] = 0
+
+    def reset(self):
+        self.board = [
+        -4, -2, -3, -5, -6, -3, -2, -4,
+        -1, -1, -1, -1, -1, -1, -1, -1,
+         0,  0,  0,  0,  0,  0,  0,  0,
+         0,  0,  0,  0,  0,  0,  0,  0,
+         0,  0,  0,  0,  0,  0,  0,  0,
+         0,  0,  0,  0,  0,  0,  0,  0,
+         1,  1,  1,  1,  1,  1,  1,  1,
+         4,  2,  3,  5,  6,  3,  2,  4
+        ]
+        return self.board
+    
+
+    #Returns list in form [(old_coord, new_coord), ...]
+    def all_white_moves(self):
+        moves = []
+        for piece in self.white_pieces:
+            piece_number = piece.possible_moves()
+            old_pos = piece.pos
+            moves += [(old_pos, new_pos) for new_pos in piece_number]
+        return moves
+
+    def all_black_moves(self):
+        moves = []
+        for piece in self.black_pieces:
+            piece_number = piece.possible_moves()
+            old_pos = piece.pos
+            moves += [(old_pos, new_pos) for new_pos in piece_number]
+        return moves
+
+    def scenario(self): #outcome is 1 for white win, 0 for draw, and -1 for black win
+        if self.color == 1:
+            moves = self.all_white_moves()
+            if moves == [] and self.check_location != []:
+                outcome = -1
+            elif moves == []:
+                outcome = 0
+
+        else:
+            moves = self.all_black_moves()
+            if moves == [] and self.check_location != []:
+                outcome = 1
+            elif moves == []:
+                outcome = 0 
+        return outcome
+
+    
+    
