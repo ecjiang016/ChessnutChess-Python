@@ -17,7 +17,7 @@ import numpy as np
 def class_to_piece_number(class_name):
     return {Pawn:1, Knight:2, Bishop:3, Rook:4, Queen:5, King:6}[class_name]
  
-def coords(pos):
+def coords_1D_to_2D(pos):
     """
     Takes in 1D coords
 
@@ -25,11 +25,15 @@ def coords(pos):
     """
     return pos % 8, pos // 8
 
+def coords_2D_to_1D(x, y):
+    return y*8 + x
+
 class King:
     def __init__(self, pos, color):
         self.pos = pos
         self.color = color #1 for white, -1 for black
         self.rook_castle = [True, True] #Left then right rook
+        self.check_king_variable_thingy = None, [-1, -9, -8, -7, 1, 9, 8, 7, -2, 2], None, None, None
 
     def pin_check(self, board): 
         """
@@ -192,10 +196,12 @@ class King:
                         possible_spaces.append(new_pos)
         
         return possible_spaces 
+
 class Rook:
     def __init__(self, pos, color):
         self.pos = pos
         self.color = color #1 for white, -1 for black
+        self.check_king_variable_thingy = [], None, [], None, []
 
     def possible_moves(self, board):
         pinned_location, _, pin_directions, _, check_to_king = self.check_king_variable_thingy
@@ -231,10 +237,12 @@ class Rook:
                     break
 
         return possible_spaces 
+
 class Bishop:
     def __init__(self, pos, color):
         self.pos = pos
         self.color = color #1 for white, -1 for black
+        self.check_king_variable_thingy = [], None, [], None, []
 
     def possible_moves(self, board):
         pinned_location, _, pin_directions, _, check_to_king = self.check_king_variable_thingy
@@ -271,11 +279,12 @@ class Bishop:
                     break
 
         return possible_spaces
-class Knight:
 
+class Knight:
     def __init__(self, pos, color):
         self.pos = pos
         self.color = color #1 for white, -1 for black
+        self.check_king_variable_thingy = [], None, [], None, []
     
     def possible_moves(self, board):
         pinned_location, _, _, check_location, check_to_king = self.check_king_variable_thingy
@@ -296,11 +305,12 @@ class Knight:
                     elif len(check_to_king) == 1 and check_pos in check_to_king[0]: #Can block a check
                         possible_spaces.append(check_pos)
         return possible_spaces
-class Queen:
 
+class Queen:
     def __init__(self, pos, color):
         self.pos = pos
         self.color = color #1 for white, -1 for black
+        self.check_king_variable_thingy = [], None, [], None, []
 
     def possible_moves(self, board):
         pinned_location, _, pin_directions, _, check_to_king = self.check_king_variable_thingy
@@ -336,12 +346,12 @@ class Queen:
                     break
 
         return possible_spaces
-class Pawn:
 
+class Pawn:
     def __init__(self, pos, color):
         self.pos = pos
         self.color = color #1 for white, -1 for black
-        self.check_king_variable_thingy = None
+        self.check_king_variable_thingy = [], None, [], None, []
         self.en_passant = None
 
     def possible_moves(self, board):
@@ -392,8 +402,16 @@ class Pawn:
         return possible_spaces
         
 class Game:
-    def __init__(self, board):
-        self.board = board
+    def __init__(self, board=None):
+        """
+        If `board` is `None`, `reset()` is called.
+        """
+        if board:
+            self.board = board
+        else:
+            self.reset()
+        self.board = np.array(self.board)
+
         self.white_pieces = [
             Pawn(48, 1), Pawn(49, 1), Pawn(50, 1), Pawn(51, 1), Pawn(52, 1), Pawn(53, 1), Pawn(54, 1), Pawn(55, 1),  
             Rook(56, 1), Knight(57, 1), Bishop(58, 1), Queen(59, 1), King(60, 1), Bishop(61, 1), Knight(62, 1), Rook(63, 1),
@@ -406,45 +424,56 @@ class Game:
         self.en_passant = None
         self.last_move = None
         self.check_location = []
-        self.player = 1
+        self.player_color = 1
+        self.end = False
 
     def convert_to_board(self):
         self.board = np.zeros((8, 8))
         for piece in self.white_pieces:
-            x, y = coords(piece.pos)
+            x, y = coords_1D_to_2D(piece.pos)
             self.board[y, x] = {Pawn:1, Knight:2, Bishop:3, Rook:4, Queen:5, King:6}[piece.__class__]
 
         for piece in self.black_pieces:
-            x, y = coords(piece.pos)
+            x, y = coords_1D_to_2D(piece.pos)
             self.board[y, x] = {Pawn:-1, Knight:-2, Bishop:-3, Rook:-4, Queen:-5, King:-6}[piece.__class__]
             
 
     def move(self, old_coord, new_coord, promotion=None):
         piece = self.board[old_coord]
+
         self.king_check()
         #Get rid of pawn when En Passant
-        if self.board[new_coord] == 0 and abs(piece) == 1:
-            self.board[old_coord+(self.player*8)]
-            self.delete_piece(old_coord+(self.player*8), self.color)
+        if self.board[new_coord] == 0 and abs(piece) == 1 and (old_coord % 8 != new_coord % 8):
+            self.board[old_coord+(self.player_color*8)] = 0
+            self.delete_piece(old_coord+(self.player_color*8), -self.player_color)
+
         #Move the piece on the board
         self.board[old_coord] = 0
-        if self.board[new_coord] < 0: 
-            self.delete_piece(old_coord+(self.player*8), self.color)
 
         if promotion: #Changes the new coord to the type of piece when a pawn is being promoted
             self.board[new_coord] = promotion
+            self.delete_piece(old_coord, self.player_color) # Delete the pawn being promoted
+
+            #Creating a new piece
+            promotion_piece_class = {2:Knight, 3:Bishop, 4:Rook, 5:Queen}[promotion]
+            if self.player_color == 1:
+                self.white_pieces.append(promotion_piece_class(new_coord, self.player_color))
+            else:
+                self.black_pieces.append(promotion_piece_class(new_coord, self.player_color))
+
         else: #Changes the new coord to the piece that was at the old coord
             self.board[new_coord] = piece
 
         #Disable castling on rook move
-        if abs(self.board[old_coord]) == 4:
-            self.castling[{0:2, 7:3, 56:0, 63:1}[old_coord]] == False
+        if abs(piece) == 4:
+            self.castling[{0:2, 7:3, 56:0, 63:1}[old_coord]] = False
         
         #Disable castling on king move
-        if abs(self.board[old_coord]) == 6:
-            self.castling[{4:2, 4:3, 60:0, 60:1}[old_coord]] == False
+        if abs(piece) == 6:
+            self.castling[{4:2, 60:0}[old_coord]] = False
+            self.castling[{4:3, 60:1}[old_coord]] = False
 
-        if self.player == 1: #White castle  
+        if self.player_color == 1: #White castle  
             if new_coord == 58 and old_coord == 60 and piece == 6: #Left Castle
                 self.board[56] = 0
                 self.board[59] = 4
@@ -463,7 +492,7 @@ class Game:
 
         
         #Pass castling status to kings
-        if self.player == 1: #Update white king
+        if self.player_color == 1: #Update white king
             for i in range(len(self.white_pieces)):
                 if self.white_pieces[i].__class__ == King:
                     self.white_pieces[i].rook_castle = self.castling[0:2]
@@ -481,24 +510,37 @@ class Game:
             self.last_move = None
 
         #Pass En passant status to pawns
-        if self.player == 1: #Update white pawns
-             for i in range(len(self.white_pieces)):
+        if self.player_color == 1: #Update white pawns
+            for i in range(len(self.white_pieces)):
                 if self.white_pieces[i].__class__ == Pawn:
                     self.white_pieces[i].en_passant = new_coord
-        
-        self.scenario()
+
+        else:
+            for i in range(len(self.black_pieces)):
+                if self.black_pieces[i].__class__ == Pawn:
+                    self.black_pieces[i].en_passant = new_coord
+
+
+        #Update piece object location
+        self.get_piece(old_coord, self.player_color).pos = new_coord
+
+
+        self.game_result = self.outcome()
+        if self.game_result != None:
+            self.end = True
+
         #Update player
-        self.player *= -1
+        self.player_color *= -1
 
     def en_passant_check(self):
         pass
 
     def king_check(self):
-        king_pos = np.argmax(self.board) * self.player
-        k = King(king_pos, self.player)
+        king_pos = np.argmax(self.board * self.player_color)
+        k = King(king_pos, self.player_color)
         pinned_location, directions, pin_directions, self.check_location, check_to_king = k.pin_check(self.board)
         
-        if self.player == 1: #Update white king
+        if self.player_color == 1: #Update white king
             for white_piece in self.white_pieces:
                 white_piece.check_king_variable_thingy = pinned_location, directions, pin_directions, self.check_location, check_to_king
             
@@ -524,7 +566,31 @@ class Game:
         if piece_type * color == self.board[position]: #Fail safe to correctly update self.board
             self.board[position] = 0
 
+    def get_piece(self, position, color) -> object:
+        """
+        Returns the piece object in the position and color specified
+        """
+        for piece in (self.white_pieces if color == 1 else self.black_pieces):
+            if piece.pos == position:
+                return piece
+
+        raise ValueError("No piece found")
+
+    def get_moves(self, position, color) -> list:
+        """
+        Returns a list of the coords of the possible moves of a piece.
+        """
+        try:
+            return self.get_piece(position, color).possible_moves(self.board)
+        except ValueError: #Piece doesn't exist in the provided position
+            return []
+        
+
     def reset(self):
+        """
+        Resets to the standard start of a chess game
+        """
+
         self.board = [
         -4, -2, -3, -5, -6, -3, -2, -4,
         -1, -1, -1, -1, -1, -1, -1, -1,
@@ -535,13 +601,17 @@ class Game:
          1,  1,  1,  1,  1,  1,  1,  1,
          4,  2,  3,  5,  6,  3,  2,  4
         ]
+
+        self.player_color = 1
+
+        #Probably need to make sure to reset castling and other stuff later
     
 
     #Returns list in form [(old_coord, new_coord), ...]
     def all_white_moves(self):
         moves = []
         for piece in self.white_pieces:
-            piece_number = piece.possible_moves()
+            piece_number = piece.possible_moves(self.board)
             old_pos = piece.pos
             moves += [(old_pos, new_pos) for new_pos in piece_number]
         return moves
@@ -549,26 +619,33 @@ class Game:
     def all_black_moves(self):
         moves = []
         for piece in self.black_pieces:
-            piece_number = piece.possible_moves()
+            piece_number = piece.possible_moves(self.board)
             old_pos = piece.pos
             moves += [(old_pos, new_pos) for new_pos in piece_number]
         return moves
 
-    def scenario(self): #outcome is 1 for white win, 0 for draw, and -1 for black win
-        if self.color == 1:
+    def outcome(self): #outcome is 1 for white win, 0 for draw, and -1 for black win
+        """
+        Returns 1 for white win, 0 for draw and -1 for black win.
+        Otherwise it returns `None`
+        """
+        if self.player_color * -1 == 1:
             moves = self.all_white_moves()
             if moves == [] and self.check_location != []:
-                outcome = -1
+                return -1
             elif moves == []:
-                outcome = 0
+                return 0
+            else:
+                return None
 
         else:
             moves = self.all_black_moves()
             if moves == [] and self.check_location != []:
-                outcome = 1
+                return 1
             elif moves == []:
-                outcome = 0 
-        return outcome
+                return 0 
+            else:
+                return None
 
     
     
