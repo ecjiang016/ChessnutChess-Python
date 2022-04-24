@@ -1,3 +1,2 @@
-/build
-/game.cp310-win_amd64.pyd
-/game.cpp
+__pycache__/
+*.py[cod]
