@@ -521,9 +521,9 @@ class Game:
                 break
             
         #Update black king
-        for i in range(len(self.white_pieces)):
+        for i in range(len(self.black_pieces)):
             if self.black_pieces[i].__class__ == King:
-                self.white_pieces[i].rook_castle = self.castling[0:2]
+                self.black_pieces[i].rook_castle = self.castling[2:4]
                 break
 
         if abs(piece) == 1 and abs(new_coord - old_coord) == 16: #Checks for En Passant possibility
