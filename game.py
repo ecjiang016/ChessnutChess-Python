@@ -514,17 +514,17 @@ class Game:
 
         
         #Pass castling status to kings
-        if self.player_color == 1: #Update white king
-            for i in range(len(self.white_pieces)):
-                if self.white_pieces[i].__class__ == King:
-                    self.white_pieces[i].rook_castle = self.castling[0:2]
-                    break
+        #Update white king
+        for i in range(len(self.white_pieces)):
+            if self.white_pieces[i].__class__ == King:
+                self.white_pieces[i].rook_castle = self.castling[0:2]
+                break
             
-        else: #Update black king
-            for i in range(len(self.white_pieces)):
-                if self.black_pieces[i].__class__ == King:
-                    self.white_pieces[i].rook_castle = self.castling[0:2]
-                    break
+        #Update black king
+        for i in range(len(self.white_pieces)):
+            if self.black_pieces[i].__class__ == King:
+                self.white_pieces[i].rook_castle = self.castling[0:2]
+                break
 
         if abs(piece) == 1 and abs(new_coord - old_coord) == 16: #Checks for En Passant possibility
             self.last_move = new_coord
