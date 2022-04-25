@@ -120,8 +120,7 @@ class King:
 
         spaces_to_edge = [x, min(y, x), y, min(y, 7-x), 7-x, min(7-y, 7-x), 7-y, min(7-y, x)]
         new_directions = [-1, -9, -8, -7, 1, 9, 8, 7, -10, -17, -15, -6, 10, 17, 15, 6]
-        left_castle = True
-        right_castle = True
+        left_castle, right_castle = self.rook_castle
         for d in range(10): #Loop over all directions
             new_pos = directions[d] + self.pos #Sets a location to the new possible coordinate
             if new_pos >= 0 and new_pos <= 63:
@@ -186,11 +185,11 @@ class King:
                                                 right_castle = False 
                                             move = False
                                             break
-                                        elif d == 8 and (castling[1-self.color] == False or left_castle == False): #Left Castle
+                                        elif d == 8 and (self.rook_castle[0] == False or left_castle == False): #Left Castle
                                             move = False
                                             break
 
-                                        elif d == 9 and (castling[2-self.color] == False or right_castle == False): #Right Castle
+                                        elif d == 9 and (self.rook_castle[1] == False or right_castle == False): #Right Castle
                                             move = False
                     if move:
                         possible_spaces.append(new_pos)
@@ -216,24 +215,24 @@ class Rook:
             for space in range(1, spaces_to_edge[d]+1): #Loop until you hit an opposing piece
                 check_pos = space * directions[d] + self.pos #Position being checked
                 color_pos = board[check_pos] * self.color #Positive if piece is friendy, negative if not
-                if check_to_king == []: #King is not in check
-                    if self.pos in pinned_location and pin_directions[d*2] == 0: #When pinned, only allows to move in the pinned direction
+                if check_to_king == []:
+                    if self.pos in pinned_location and pin_directions[d*2] == 0: #King is not in check
                         if color_pos < 0:
                             possible_spaces.append(check_pos) #Can capture
                             break
                         else:
                             possible_spaces.append(check_pos)
                     
-                    elif not self.pos in pinned_location: #Is not pinned
+                    elif not self.pos in pinned_location:
+                        if color_pos > 0:
+                            break
                         if color_pos < 0:
                             possible_spaces.append(check_pos) #Can capture
                             break
                         else:
                             possible_spaces.append(check_pos)
-                elif check_pos in check_to_king[0] and not self.pos in pinned_location and len(check_to_king) == 1: #Can capture the piece checking the king or block a check (is not pinned)
+                elif check_pos in check_to_king[0] and not self.pos in pinned_location and len(check_to_king) == 1: #Can capture the piece checking the king or block a check
                     possible_spaces.append(check_pos)
-                    break
-                if color_pos > 0:
                     break
 
         return possible_spaces 
@@ -441,7 +440,6 @@ class Game:
     def move(self, old_coord, new_coord, promotion=None):
         piece = self.board[old_coord]
 
-        self.king_check()
         #Get rid of pawn when En Passant
         if self.board[new_coord] == 0 and abs(piece) == 1 and (old_coord % 8 != new_coord % 8):
             self.board[old_coord+(self.player_color*8)] = 0
@@ -450,9 +448,17 @@ class Game:
         #Move the piece on the board
         self.board[old_coord] = 0
 
+        #Disable castling on rook capture
+        if abs(self.board[new_coord]) == 4:
+            ValueError
+            try:
+                self.castling[{0:2, 7:3, 56:0, 63:1}[new_coord]] = False
+            except KeyError:
+                pass
+
         if promotion: #Changes the new coord to the type of piece when a pawn is being promoted
             self.board[new_coord] = promotion
-            self.delete_piece(old_coord, self.player_color) #Delete the pawn being promoted
+            self.delete_piece(old_coord, self.player_color) # Delete the pawn being promoted
 
             #Creating a new piece
             promotion_piece_class = {2:Knight, 3:Bishop, 4:Rook, 5:Queen}[promotion]
@@ -462,57 +468,53 @@ class Game:
                 self.black_pieces.append(promotion_piece_class(new_coord, self.player_color))
 
         else: #Changes the new coord to the piece that was at the old coord
-            #Delete captured piece
-            if self.board[new_coord] != 0:
-                self.delete_piece(new_coord, -self.player_color)
-
             self.board[new_coord] = piece
 
         #Disable castling on rook move
         if abs(piece) == 4:
-            try:
-                self.castling[{0:2, 7:3, 56:0, 63:1}[old_coord]] = False
-            except KeyError:
-                pass
+            self.castling[{0:2, 7:3, 56:0, 63:1}[old_coord]] = False
         
         #Disable castling on king move
         if abs(piece) == 6:
-            try:
-                self.castling[{4:2, 60:0}[old_coord]] = False
-                self.castling[{4:3, 60:1}[old_coord]] = False
-            except KeyError:
-                pass
+            self.castling[{4:2, 60:0}[old_coord]] = False
+            self.castling[{4:3, 60:1}[old_coord]] = False
 
         if self.player_color == 1: #White castle  
             if new_coord == 58 and old_coord == 60 and piece == 6: #Left Castle
                 self.board[56] = 0
                 self.board[59] = 4
+                self.castling[0] = False
+
             if new_coord == 62 and old_coord == 60 and piece == 6: #Right Castle
                 self.board[63] = 0
                 self.board[61] = 4
+                self.castling[1] = False
 
         else: #Black castle
             if new_coord == 2 and old_coord == 4 and piece == -6: #Left Castle
                 self.board[0] = 0
                 self.board[3] = -4
+                self.castling[2] = False
+
             if new_coord == 6 and old_coord == 4 and piece == -6: #Right Castle
                 self.board[7] = 0
                 self.board[5] = -4
+                self.castling[3] = False
             
 
         
         #Pass castling status to kings
-        if self.player_color == 1: #Update white king
-            for i in range(len(self.white_pieces)):
-                if self.white_pieces[i].__class__ == King:
-                    self.white_pieces[i].rook_castle = self.castling[0:2]
-                    break
+        #Update white king
+        for i in range(len(self.white_pieces)):
+            if self.white_pieces[i].__class__ == King:
+                self.white_pieces[i].rook_castle = self.castling[0:2]
+                break
             
-        else: #Update black king
-            for i in range(len(self.white_pieces)):
-                if self.black_pieces[i].__class__ == King:
-                    self.white_pieces[i].rook_castle = self.castling[0:2]
-                    break
+        #Update black king
+        for i in range(len(self.black_pieces)):
+            if self.black_pieces[i].__class__ == King:
+                self.black_pieces[i].rook_castle = self.castling[2:4]
+                break
 
         if abs(piece) == 1 and abs(new_coord - old_coord) == 16: #Checks for En Passant possibility
             self.last_move = new_coord
@@ -543,6 +545,7 @@ class Game:
         #Update player
         self.player_color *= -1
 
+        #Update checks and pins
         self.king_check()
 
     def en_passant_check(self):
@@ -659,6 +662,3 @@ class Game:
                 return 0 
             else:
                 return None
-
-    
-    
