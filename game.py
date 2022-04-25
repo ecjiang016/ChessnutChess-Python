@@ -386,13 +386,13 @@ class Pawn:
             if color_pos == -1 and check_to_king == [] and y == (4 - self.color) and self.en_passant == check_pos: #En passant Right
                 possible_spaces.append(check_pos - (8 * self.color))
         
-        if pinned_location == [] or (self.pos in pinned_location and pin_directions[1] == 0):
+        if self.pos not in pinned_location or (self.pos in pinned_location and pin_directions[1] == 0):
             check_pos = directions[1] + self.pos
             color_pos = board[check_pos] * self.color
             if color_pos < 0: #Can capture diagonal left
                 possible_spaces.append(check_pos)
 
-        if pinned_location == [] or self.pos in pinned_location and pin_directions[3] == 0:
+        if self.pos not in pinned_location or (self.pos in pinned_location and pin_directions[3] == 0):
             check_pos = directions[3] + self.pos
             color_pos = board[check_pos] * self.color
             if color_pos < 0: #Can capture diagonal right
@@ -514,17 +514,17 @@ class Game:
 
         
         #Pass castling status to kings
-        #Update white king
-        for i in range(len(self.white_pieces)):
-            if self.white_pieces[i].__class__ == King:
-                self.white_pieces[i].rook_castle = self.castling[0:2]
-                break
+        if self.player_color == 1: #Update white king
+            for i in range(len(self.white_pieces)):
+                if self.white_pieces[i].__class__ == King:
+                    self.white_pieces[i].rook_castle = self.castling[0:2]
+                    break
             
-        #Update black king
-        for i in range(len(self.white_pieces)):
-            if self.black_pieces[i].__class__ == King:
-                self.white_pieces[i].rook_castle = self.castling[0:2]
-                break
+        else: #Update black king
+            for i in range(len(self.white_pieces)):
+                if self.black_pieces[i].__class__ == King:
+                    self.white_pieces[i].rook_castle = self.castling[0:2]
+                    break
 
         if abs(piece) == 1 and abs(new_coord - old_coord) == 16: #Checks for En Passant possibility
             self.last_move = new_coord
