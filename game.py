@@ -113,7 +113,6 @@ class King:
 
     def possible_moves(self, board):
         _, directions, _, _, _ = self.check_king_variable_thingy
-        castling = [True, True, True, True] #Left White, Right White, Left Black, Right Black
         x = self.pos % 8 
         y = self.pos // 8 
         possible_spaces = []
@@ -185,12 +184,18 @@ class King:
                                                 right_castle = False 
                                             move = False
                                             break
-                                        elif d == 8 and (self.rook_castle[0] == False or left_castle == False): #Left Castle
-                                            move = False
-                                            break
-
+                                        elif d == 8: #Left Castle
+                                            if self.rook_castle[0] == False or left_castle == False:
+                                                move = False
+                                                break
+                                            color_pos = board[new_pos-1] * self.color
+                                            if not color_pos == 0:
+                                                move = False 
+                                                break
+                                        
                                         elif d == 9 and (self.rook_castle[1] == False or right_castle == False): #Right Castle
                                             move = False
+                                            break
                     if move:
                         possible_spaces.append(new_pos)
         
