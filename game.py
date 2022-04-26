@@ -288,7 +288,7 @@ class Knight:
     def __init__(self, pos, color):
         self.pos = pos
         self.color = color #1 for white, -1 for black
-        self.check_king_variable_thingy = [], None, [], None, []
+        self.check_king_variable_thingy = [], None, None, [], []
     
     def possible_moves(self, board):
         pinned_location, _, _, check_location, check_to_king = self.check_king_variable_thingy
@@ -357,48 +357,50 @@ class Pawn:
         self.color = color #1 for white, -1 for black
         self.check_king_variable_thingy = [], None, [], None, []
         self.en_passant = None
+        self.directions = [-16 * self.color, -9 * self.color, -8 * self.color, -7 * self.color]
 
     def possible_moves(self, board):
         pinned_location, _, pin_directions, _, check_to_king = self.check_king_variable_thingy
 
-        directions = [-16 * self.color, -9 * self.color, -8 * self.color, -7 * self.color, -1, 1]
+        
         y = self.pos // 8
         move_2 = True
         possible_spaces = []
         if not self.pos in pinned_location or abs(sum(pin_directions)) == 8:
-            check_pos = directions[2] + self.pos
+            check_pos = self.directions[2] + self.pos
             color_pos = board[check_pos] * self.color
             if color_pos == 0 and (check_to_king == [] or (check_pos in check_to_king[0] and len(check_to_king) == 1)): #Move one forward
                 possible_spaces.append(check_pos)
             else: 
                 move_2 = False
 
-            check_pos = directions[0] + self.pos
-            color_pos = board[check_pos] * self.color
+            check_pos = self.directions[0] + self.pos
+            try:
+                color_pos = board[check_pos] * self.color
+            except IndexError: #Ignore if it goes off board
+                pass
             if not ((2 * y) - (5 * self.color) == 7):
                 move_2 = False
             if color_pos == 0 and move_2 == True and (check_to_king == [] or (check_pos in check_to_king[0] and len(check_to_king) == 1)): #Can move two forward
                 possible_spaces.append(check_pos)
 
         if not self.pos in pinned_location:
-            check_pos = directions[4] + self.pos
-            color_pos = board[check_pos] * self.color
-            if color_pos == -1 and (check_to_king == [] or check_to_king == [check_pos]) and y == (4 - self.color) and self.en_passant == check_pos: #En passant Left
-                possible_spaces.append(check_pos - (8 * self.color))
+            check_pos = self.pos - self.color
+            if (check_to_king == [] or check_to_king == [check_pos]) and self.en_passant == check_pos: #En passant Left
+                possible_spaces.append(self.directions[1] + self.pos)
 
-            check_pos = directions[5] + self.pos
-            color_pos = board[check_pos] * self.color
-            if color_pos == -1 and check_to_king == [] and y == (4 - self.color) and self.en_passant == check_pos: #En passant Right
-                possible_spaces.append(check_pos - (8 * self.color))
+            check_pos = self.pos + self.color
+            if (check_to_king == [] or check_to_king == [check_pos]) and self.en_passant == check_pos: #En passant Right
+                possible_spaces.append(self.directions[3] + self.pos)
         
         if self.pos not in pinned_location or (self.pos in pinned_location and pin_directions[1] == 0):
-            check_pos = directions[1] + self.pos
+            check_pos = self.directions[1] + self.pos
             color_pos = board[check_pos] * self.color
             if color_pos < 0: #Can capture diagonal left
                 possible_spaces.append(check_pos)
 
         if self.pos not in pinned_location or (self.pos in pinned_location and pin_directions[3] == 0):
-            check_pos = directions[3] + self.pos
+            check_pos = self.directions[3] + self.pos
             color_pos = board[check_pos] * self.color
             if color_pos < 0: #Can capture diagonal right
                 possible_spaces.append(check_pos)
@@ -447,8 +449,9 @@ class Game:
 
         #Get rid of pawn when En Passant
         if self.board[new_coord] == 0 and abs(piece) == 1 and (old_coord % 8 != new_coord % 8):
-            self.board[old_coord+(self.player_color*8)] = 0
-            self.delete_piece(old_coord+(self.player_color*8), -self.player_color)
+            captured_piece = new_coord+(self.player_color*8)
+            self.board[captured_piece] = 0
+            self.delete_piece(captured_piece, -self.player_color)
 
         #Move the piece on the board
         self.board[old_coord] = 0
@@ -461,8 +464,11 @@ class Game:
             except KeyError:
                 pass
 
+        if abs(piece) == 1 and ((new_coord // 8) == 0 or (new_coord // 8) == 7) and not promotion: #If pawn is being promoted and promotion = None, automatically promote to queen
+            promotion = 5
+
         if promotion: #Changes the new coord to the type of piece when a pawn is being promoted
-            self.board[new_coord] = promotion
+            self.board[new_coord] = promotion * self.player_color
             self.delete_piece(old_coord, self.player_color) #Delete the pawn being promoted
 
             #Creating a new piece
@@ -525,11 +531,11 @@ class Game:
                     self.white_pieces[i].rook_castle = self.castling[0:2]
                     break
             
-        else: #Update black king
-            for i in range(len(self.white_pieces)):
-                if self.black_pieces[i].__class__ == King:
-                    self.white_pieces[i].rook_castle = self.castling[0:2]
-                    break
+        #Update black king
+        for i in range(len(self.black_pieces)):
+            if self.black_pieces[i].__class__ == King:
+                self.black_pieces[i].rook_castle = self.castling[2:4]
+                break
 
         if abs(piece) == 1 and abs(new_coord - old_coord) == 16: #Checks for En Passant possibility
             self.last_move = new_coord
@@ -537,15 +543,16 @@ class Game:
             self.last_move = None
 
         #Pass En passant status to pawns
-        if self.player_color == 1: #Update white pawns
+        pawn_double_push = abs(new_coord - old_coord) == 16
+        if self.player_color == -1: #Update pawns
             for i in range(len(self.white_pieces)):
                 if self.white_pieces[i].__class__ == Pawn:
-                    self.white_pieces[i].en_passant = new_coord
+                    self.white_pieces[i].en_passant = new_coord if pawn_double_push else None
 
         else:
             for i in range(len(self.black_pieces)):
                 if self.black_pieces[i].__class__ == Pawn:
-                    self.black_pieces[i].en_passant = new_coord
+                    self.black_pieces[i].en_passant = new_coord if pawn_double_push else None
 
 
         #Update piece object location
@@ -563,8 +570,6 @@ class Game:
         #Update checks and pins
         self.king_check()
 
-    def en_passant_check(self):
-        pass
 
     def king_check(self):
         king_pos = np.argmax(self.board * self.player_color)
