@@ -143,7 +143,7 @@ def main():
                     if piece_moves[new_y, new_x] == 1:
                         piece, old_x, old_y = selected_piece
                         promote = None
-                        if (piece == 1 and new_y == 0) or (piece == 2 and new_y == 7):
+                        if (piece == 1 and new_y == 0) or (piece == -1 and new_y == 7):
                             promote = ""
                             while promote.upper() not in ["Q", "N", "R", "B"]:
                                 promote = input("Promote to Q, R, B, or N: ")
