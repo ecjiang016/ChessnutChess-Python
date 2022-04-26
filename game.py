@@ -459,7 +459,7 @@ class Game:
             except KeyError:
                 pass
 
-        if abs(piece) == 1 and (new_coord // 8) == 1 or (new_coord // 8) == 7 and not promotion: #If pawn is being promoted and promotion = None, automatically promote to queen
+        if abs(piece) == 1 and ((new_coord // 8) == 0 or (new_coord // 8) == 7) and not promotion: #If pawn is being promoted and promotion = None, automatically promote to queen
             promotion = 5
 
         if promotion: #Changes the new coord to the type of piece when a pawn is being promoted
