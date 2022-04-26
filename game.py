@@ -283,7 +283,7 @@ class Knight:
     def __init__(self, pos, color):
         self.pos = pos
         self.color = color #1 for white, -1 for black
-        self.check_king_variable_thingy = [], None, [], None, []
+        self.check_king_variable_thingy = [], None, None, [], []
     
     def possible_moves(self, board):
         pinned_location, _, _, check_location, check_to_king = self.check_king_variable_thingy
