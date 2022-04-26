@@ -106,11 +106,10 @@ def draw_drag(screen, board, selected_piece):
 def display_board(game):
     screen = pygame.display.set_mode((WINDOW_SIZE, WINDOW_SIZE))
     board_surface = create_background_board(np.zeros((8, 8)), (0, 8, 8))
-    pygame_board = game.combined_board()
     screen.fill(pygame.Color('grey'))
 
     screen.blit(board_surface, (0, 0))
-    draw_pieces(screen, pygame_board, (None,))
+    draw_pieces(screen, game.board.reshape(8, 8), (None,))
 
     pygame.display.flip()
 
