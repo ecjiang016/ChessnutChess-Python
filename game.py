@@ -58,14 +58,16 @@ class King:
                 color_pos = board[check_pos] * self.color
                 if color_pos == -2:
                     check.append(check_pos)
+                    check_to_king.append([check_pos])
 
             spaces_to_edge = [x, min(y, x), y, min(y, 7-x), 7-x, min(7-y, 7-x), 7-y, min(7-y, x)] 
             possible_pin = 0
             if spaces_to_edge[d]:
                 check_pos = directions[d] + self.pos
                 color_pos = board[check_pos] * self.color
-                if color_pos == -1 and (d == 1 or d == 3):
+                if color_pos == -1 and (directions[d] * self.color == -7 or directions[d] * self.color == -9):
                     check.append(check_pos)
+                    check_to_king.append([check_pos])
 
                 for space in range(1, spaces_to_edge[d]+1): #Loop until you hit an opposing piece
                     check_pos = space * directions[d] + self.pos
@@ -136,23 +138,20 @@ class King:
                         move = False
                     if move == True:
                         for f in range(16): #Loop over all directions for new coordinate
-                            
                             check_pos = new_directions[f] + new_pos
                             if not check_pos == self.pos and check_pos >= 0 and check_pos <= 63:
                                 color_pos = board[check_pos] * self.color
-                                spaces_to_edge = [x, min(y, x), y, min(y, 7-x), 7-x, min(7-y, 7-x), 7-y, min(7-y, x), 0, 0, 0, 0, 0, 0, 0, 0]
+                                spaces_to_edge = [x, min(y, x), y, min(y, 7-x), 7-x, min(7-y, 7-x), 7-y, min(7-y, x)]
 
-                                if color_pos == -2 and f > 8: #For knight moves
+                                if color_pos == -2 and f >= 8: #For knight moves
                                     move = False
                                     break
-                                    
-                                else:
+                                elif f<=7:
                                     for space in range(1, spaces_to_edge[f]+1): #Loop until you hit an opposing piece
                                         check_pos = space * new_directions[f] + new_pos
                                         color_pos = board[check_pos] * self.color
                                         if color_pos > 0: #Running into your own piece does not mean a check so king can move there
                                             break
-
                                         elif (color_pos == -4 or color_pos == -5) and f%2 == 0 and f <= 7: #For Rook and part of Queen moves
                                             if d == 0:
                                                 left_castle = False
@@ -160,7 +159,6 @@ class King:
                                                 right_castle = False    
                                             move = False
                                             break
-
                                         elif (color_pos == -3 or color_pos == -5) and f%2 == 1 and f <= 7: #For Bishop and other part of Queen moves
                                             if d == 0:
                                                 left_castle = False
@@ -169,7 +167,7 @@ class King:
                                             move = False
                                             break
 
-                                        elif color_pos == -1 and space == 1 and f%2 == 1 and f <= 3: #For Pawn moves
+                                        elif color_pos == -1 and space == 1 and (f == 1 or f == 3): #For Pawn moves
                                             if d == 0:
                                                 left_castle = False
                                             elif d == 4:
@@ -196,6 +194,10 @@ class King:
                                         elif d == 9 and (self.rook_castle[1] == False or right_castle == False): #Right Castle
                                             move = False
                                             break
+
+                                        elif color_pos < 0: #Breaks if there is a piece that is not any of the above and is the opposing piece
+                                            break
+                                    
                     if move:
                         possible_spaces.append(new_pos)
         
@@ -229,6 +231,8 @@ class Rook:
                             possible_spaces.append(check_pos)
                     
                     elif not self.pos in pinned_location:
+                        if color_pos > 0:
+                            break
                         if color_pos < 0:
                             possible_spaces.append(check_pos) #Can capture
                             break
@@ -280,6 +284,8 @@ class Bishop:
                             possible_spaces.append(check_pos)
                 elif check_pos in check_to_king[0] and not self.pos in pinned_location and len(check_to_king) == 1: #Can capture the piece checking the king or block a check
                     possible_spaces.append(check_pos)
+                    break
+                if color_pos > 0: 
                     break
 
         return possible_spaces
@@ -348,6 +354,8 @@ class Queen:
                 elif check_pos in check_to_king[0] and not self.pos in pinned_location and len(check_to_king) == 1: #Can capture the piece checking the king or block a check
                     possible_spaces.append(check_pos)
                     break
+                if color_pos > 0:
+                    break
 
         return possible_spaces
 
@@ -392,17 +400,17 @@ class Pawn:
             check_pos = self.pos + self.color
             if (check_to_king == [] or check_to_king == [check_pos]) and self.en_passant == check_pos: #En passant Right
                 possible_spaces.append(self.directions[3] + self.pos)
-        
-        if self.pos not in pinned_location or (self.pos in pinned_location and pin_directions[1] == 0):
-            check_pos = self.directions[1] + self.pos
-            color_pos = board[check_pos] * self.color
-            if color_pos < 0: #Can capture diagonal left
+
+        check_pos = directions[1] + self.pos
+        color_pos = board[check_pos] * self.color
+        if (self.pos not in pinned_location and check_to_king == []) or (check_pos in check_to_king[0] and len(check_to_king) == 1 and (pin_directions[1] < 0 or pin_directions[3] < 0 )):
+            if color_pos < 0:#Can capture diagonal left
                 possible_spaces.append(check_pos)
 
-        if self.pos not in pinned_location or (self.pos in pinned_location and pin_directions[3] == 0):
-            check_pos = self.directions[3] + self.pos
-            color_pos = board[check_pos] * self.color
-            if color_pos < 0: #Can capture diagonal right
+        check_pos = directions[3] + self.pos
+        color_pos = board[check_pos] * self.color
+        if (self.pos not in pinned_location and check_to_king == []) or (check_pos in check_to_king[0] and len(check_to_king) == 1 and (pin_directions[1] < 0 or pin_directions[3] < 0 )): 
+            if color_pos < 0:#Can capture diagonal right
                 possible_spaces.append(check_pos)
 
         return possible_spaces
