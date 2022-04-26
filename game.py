@@ -401,13 +401,13 @@ class Pawn:
             if (check_to_king == [] or check_to_king == [check_pos]) and self.en_passant == check_pos: #En passant Right
                 possible_spaces.append(self.directions[3] + self.pos)
 
-        check_pos = directions[1] + self.pos
+        check_pos = self.directions[1] + self.pos
         color_pos = board[check_pos] * self.color
         if (self.pos not in pinned_location and check_to_king == []) or (check_pos in check_to_king[0] and len(check_to_king) == 1 and (pin_directions[1] < 0 or pin_directions[3] < 0 )):
             if color_pos < 0:#Can capture diagonal left
                 possible_spaces.append(check_pos)
 
-        check_pos = directions[3] + self.pos
+        check_pos = self.directions[3] + self.pos
         color_pos = board[check_pos] * self.color
         if (self.pos not in pinned_location and check_to_king == []) or (check_pos in check_to_king[0] and len(check_to_king) == 1 and (pin_directions[1] < 0 or pin_directions[3] < 0 )): 
             if color_pos < 0:#Can capture diagonal right
