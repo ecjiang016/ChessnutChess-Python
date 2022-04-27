@@ -571,16 +571,15 @@ class Game:
         if not promotion:
             self.get_piece(old_coord, self.player_color).pos = new_coord
 
-
-        self.game_result = self.outcome()
-        if self.game_result != None:
-            self.end = True
-
         #Update player
         self.player_color *= -1
 
         #Update checks and pins
         self.king_check()
+
+        self.result = self.outcome()
+        if self.result != None:
+            self.end = True
 
 
     def king_check(self):
@@ -677,7 +676,7 @@ class Game:
         Returns 1 for white win, 0 for draw and -1 for black win.
         Otherwise it returns `None`
         """
-        if self.player_color * -1 == 1:
+        if self.player_color == 1:
             moves = self.all_white_moves()
             if moves == [] and self.check_location != []:
                 return -1
