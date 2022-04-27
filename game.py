@@ -403,13 +403,13 @@ class Pawn:
 
         check_pos = self.directions[1] + self.pos
         color_pos = board[check_pos] * self.color
-        if (self.pos not in pinned_location and check_to_king == []) or (check_pos in check_to_king[0] and len(check_to_king) == 1 and (pin_directions[1] < 0 or pin_directions[3] < 0 )):
+        if (self.pos not in pinned_location and check_to_king == []) or (len(check_to_king) == 1 and check_pos in check_to_king and (pin_directions[1] < 0 or pin_directions[3] < 0 )):
             if color_pos < 0:#Can capture diagonal left
                 possible_spaces.append(check_pos)
 
         check_pos = self.directions[3] + self.pos
         color_pos = board[check_pos] * self.color
-        if (self.pos not in pinned_location and check_to_king == []) or (check_pos in check_to_king[0] and len(check_to_king) == 1 and (pin_directions[1] < 0 or pin_directions[3] < 0 )): 
+        if (self.pos not in pinned_location and check_to_king == []) or (len(check_to_king) == 1 and check_pos in check_to_king and (pin_directions[1] < 0 or pin_directions[3] < 0 )):
             if color_pos < 0:#Can capture diagonal right
                 possible_spaces.append(check_pos)
 
@@ -513,22 +513,26 @@ class Game:
                 self.board[56] = 0
                 self.board[59] = 4
                 self.castling[0] = False
+                self.get_piece(56, 1).pos = 59 #Move the white rook
 
             if new_coord == 62 and old_coord == 60 and piece == 6: #Right Castle
                 self.board[63] = 0
                 self.board[61] = 4
                 self.castling[1] = False
+                self.get_piece(63, 1).pos = 61 #Move the white rook
 
         else: #Black castle
             if new_coord == 2 and old_coord == 4 and piece == -6: #Left Castle
                 self.board[0] = 0
                 self.board[3] = -4
                 self.castling[2] = False
+                self.get_piece(0, -1).pos = 3 #Move the black rook
 
             if new_coord == 6 and old_coord == 4 and piece == -6: #Right Castle
                 self.board[7] = 0
                 self.board[5] = -4
                 self.castling[3] = False
+                self.get_piece(7, -1).pos = 5 #Move the black rook
             
 
         
