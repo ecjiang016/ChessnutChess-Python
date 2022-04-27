@@ -230,7 +230,7 @@ class Rook:
                         else:
                             possible_spaces.append(check_pos)
                     
-                    elif not self.pos in pinned_location:
+                    elif not self.pos in pinned_location: #Not pinned
                         if color_pos > 0:
                             break
                         if color_pos < 0:
@@ -266,8 +266,8 @@ class Bishop:
             for space in range(1, spaces_to_edge[d]+1): #Loop until you hit an opposing piece
                 check_pos = space * directions[d] + self.pos  #Position being checked
                 color_pos = board[check_pos] * self.color #Positive if piece is friendy, negative if not
-                if check_to_king == []:
-                    if self.pos in pinned_location and pin_directions[d*2+1] == 0: #King is not in check
+                if check_to_king == []:#King is not in check
+                    if self.pos in pinned_location and pin_directions[d*2+1] == 0: #When pinned, only allows to move in the pinned direction
                         if color_pos < 0:
                             possible_spaces.append(check_pos) #Can capture
                             break
@@ -336,14 +336,14 @@ class Queen:
                 check_pos = space * directions[d] + self.pos
                 color_pos = board[check_pos] * self.color
                 if check_to_king == []:
-                    if self.pos in pinned_location and pin_directions[d] == 0: #King is not in check
+                    if self.pos in pinned_location and pin_directions[d] == 0: #King is not in check and piece is pinned
                         if color_pos < 0:
                             possible_spaces.append(check_pos) #Can capture
                             break
                         else:
                             possible_spaces.append(check_pos)
                     
-                    elif not self.pos in pinned_location:
+                    elif not self.pos in pinned_location: 
                         if color_pos > 0:
                             break
                         if color_pos < 0:
