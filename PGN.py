@@ -178,25 +178,26 @@ def Interpret(PGN:str, display=False) -> tuple[list, list, list]:
             else:
                 boards.append(game.board)
 
+            if display:
+                print(turn)
+                print((old_x, old_y), (new_x, new_y))
+
             moves.append((Chess.coords_2D_to_1D(old_x, old_y), Chess.coords_2D_to_1D(new_x, new_y), promotion))
             game.move(Chess.coords_2D_to_1D(old_x, old_y), Chess.coords_2D_to_1D(new_x, new_y), promotion)
 
             if display:
-                GUI.display_board(game)
+                GUI.display_board(game, (old_x, old_y), (new_x, new_y))
                 time.sleep(0.7)
-
-                print(turn)
-                print((old_x, old_y), (new_x, new_y))
 
     
     print(f"{winner} (PGN)")
     if checkmate:
         assert game.result == winner
 
-    return np.array(boards), moves, np.full(shape=len(moves), fill_value=winner)
+    return boards, moves, [winner] * len(moves)
 
 if __name__ == '__main__':
-    test_pgn = "1. e4 d5 2. exd5 Qxd5 3. Nc3 Qd8 4. Bc4 Nf6 5. Nf3 Bg4 6. h3 Bxf3 7. Qxf3 e6 8. Qxb7 Nbd7 9. Nb5 Rc8 10. Nxa7 Nb6 11. Nxc8 Nxc8 12. d4 Nd6 13. Bb5+ Nxb5 14. Qxb5+ Nd7 15. d5 exd5 16. Be3 Bd6 17. Rd1 Qf6 18. Rxd5 Qg6 19. Bf4 Bxf4 20. Qxd7+ Kf8 21. Qd8# 1-0"
+    test_pgn = '1. e4 c5 2. Nf3 d6 3. d4 Nf6 4. Nc3 cxd4 5. Nxd4 g6 6. f3 Bg7 7. Be3 O-O 8. Qd2 Nc6 9. Nb3 Be6 10. Bh6 a5 11. Bxg7 Kxg7 12. g4 Ne5 13. Be2 Nc4 14. Bxc4 Bxc4 15. h4 a4 16. Nd4 e5 17. Ndb5 d5 18. g5 Nh5 19. exd5 Nf4 20. O-O-O Ra5 21. Na3 Bxd5 22. Nxd5 Rxd5 23. Qe3 Rxd1+ 24. Rxd1 Qc7 25. Qe4 Qc5 26. Qxb7 Ne2+ 27. Kd2 Qf2 28. Qc7 e4 29. fxe4 Re8 30. e5 Qd4+ 31. Ke1 Qe4 32. Kd2 Rxe5 33. c4 Qf4+ 34. Kc2 Nd4+ 35. Rxd4 Qxd4 36. Qxe5+ Qxe5 37. b4 Qe2+ 0-1'
     #print(test_pgn)
     start = time.time()
     Interpret(test_pgn, True)

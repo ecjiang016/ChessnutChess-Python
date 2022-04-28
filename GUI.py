@@ -103,9 +103,28 @@ def draw_drag(screen, board, selected_piece):
         screen.blit(img, img.get_rect(center=pos))
         return (x, y)
 
-def display_board(game):
+def display_board(game, old_xy=None, new_xy=None):
+    old_x, old_y = old_xy
+    new_x, new_y = new_xy
+
     screen = pygame.display.set_mode((WINDOW_SIZE, WINDOW_SIZE))
-    board_surface = create_background_board(np.zeros((8, 8)), (0, 8, 8))
+
+    #board_surface = create_background_board(np.zeros((8, 8)), (0, 8, 8))
+    board_surface = pygame.Surface((WINDOW_SIZE, WINDOW_SIZE))
+    for y in range(8):
+        for x in range(8):
+            rect = pygame.Rect(x*TILE_SIZE, y*TILE_SIZE, TILE_SIZE, TILE_SIZE)
+            if (y+x) % 2 == 0:
+                color = pygame.Color(192, 192, 192) #Lighter color
+                if (x, y) == old_xy or (x, y) == new_xy:
+                    color = pygame.Color(255, 255, 153) #Yellow for piece being moved
+            else:
+                color = pygame.Color(105, 105, 105) #Darker color
+                if (x, y) == old_xy or (x, y) == new_xy:
+                    color = pygame.Color(255, 255, 102) #Yellow for piece being moved
+            
+
+            pygame.draw.rect(board_surface, color, rect)
     screen.fill(pygame.Color('grey'))
 
     screen.blit(board_surface, (0, 0))
