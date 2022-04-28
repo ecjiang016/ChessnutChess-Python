@@ -132,8 +132,15 @@ def display_board(game, old_xy=None, new_xy=None):
 
     pygame.display.flip()
 
-def main():
-    game = Game()
+def main(load=False):
+    """
+    Args:
+        - load: Load a game by passing in a game object
+    """
+    if load:
+        game = load
+    else:
+        game = Game()
 
     screen = pygame.display.set_mode((WINDOW_SIZE, WINDOW_SIZE))
     clock = pygame.time.Clock()

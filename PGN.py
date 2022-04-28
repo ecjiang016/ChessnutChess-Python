@@ -11,9 +11,14 @@ def letter_to_piece_number(letter:str) -> int:
 def class_to_letter(obj) -> str:
     return {Chess.Pawn:'P', Chess.Knight:'N', Chess.Bishop:'B', Chess.Rook:'R', Chess.Queen:'Q', Chess.King:'K'}[obj]
 
-def Interpret(PGN:str, display=False) -> tuple[list, list, list]:
+def Interpret(PGN:str, display=False, delay=0.7, start_GUI_game_at="") -> tuple[list, list, list]:
     """
     Takes in a PGN. Outputs a list with all the boards, a list elements of ((old_x, old_y), (new_x, new_y)), piece), and a list with the values (Winner value)
+    Args:
+        - `PGN`: Chess game in PGN format
+        - `display`: When `True`, the GUI will display the moves being loaded
+        - `delay`: Time waited before displaying the next move. Doesn't do anything if `display` is `False`
+        - `start_GUI_game_at`: Takes in a string. Will stop interpreting the PGN and launch the GUI game at that move
     """
     if display:
         import GUI
@@ -42,6 +47,11 @@ def Interpret(PGN:str, display=False) -> tuple[list, list, list]:
 
     for turns in pgn:
         for turn in turns:
+            #Load a game
+            if start_GUI_game_at and turn == start_GUI_game_at:
+                import GUI
+                GUI.main(load=game)
+
             promotion = None
             if turn[-1] == "+" or turn[-1] == "#":
                 if turn[-1] == "#":
@@ -187,7 +197,7 @@ def Interpret(PGN:str, display=False) -> tuple[list, list, list]:
 
             if display:
                 GUI.display_board(game, (old_x, old_y), (new_x, new_y))
-                time.sleep(0.7)
+                time.sleep(delay)
 
     
     print(f"{winner} (PGN)")
@@ -200,5 +210,5 @@ if __name__ == '__main__':
     test_pgn = '1. e4 c5 2. Nf3 d6 3. d4 Nf6 4. Nc3 cxd4 5. Nxd4 g6 6. f3 Bg7 7. Be3 O-O 8. Qd2 Nc6 9. Nb3 Be6 10. Bh6 a5 11. Bxg7 Kxg7 12. g4 Ne5 13. Be2 Nc4 14. Bxc4 Bxc4 15. h4 a4 16. Nd4 e5 17. Ndb5 d5 18. g5 Nh5 19. exd5 Nf4 20. O-O-O Ra5 21. Na3 Bxd5 22. Nxd5 Rxd5 23. Qe3 Rxd1+ 24. Rxd1 Qc7 25. Qe4 Qc5 26. Qxb7 Ne2+ 27. Kd2 Qf2 28. Qc7 e4 29. fxe4 Re8 30. e5 Qd4+ 31. Ke1 Qe4 32. Kd2 Rxe5 33. c4 Qf4+ 34. Kc2 Nd4+ 35. Rxd4 Qxd4 36. Qxe5+ Qxe5 37. b4 Qe2+ 0-1'
     #print(test_pgn)
     start = time.time()
-    Interpret(test_pgn, True)
+    Interpret(test_pgn, display=True, delay=0.1, start_GUI_game_at="Qf2")
     print(time.time() - start)
