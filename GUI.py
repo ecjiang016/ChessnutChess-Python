@@ -164,6 +164,7 @@ def main():
         clock.tick(60)
 
         if game.end:
+            print("Game End")
             time.sleep(7)
             return
 
