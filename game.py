@@ -118,11 +118,12 @@ class King:
         y = self.pos // 8 
         possible_spaces = []
 
-        spaces_to_edge = [x, min(y, x), y, min(y, 7-x), 7-x, min(7-y, 7-x), 7-y, min(7-y, x)]
         new_directions = [-1, -9, -8, -7, 1, 9, 8, 7, -10, -17, -15, -6, 10, 17, 15, 6]
         left_castle, right_castle = self.rook_castle
         for d in range(10): #Loop over all directions
             new_pos = directions[d] + self.pos #Sets a location to the new possible coordinate
+            x = new_pos % 8 
+            y = new_pos // 8 
             if new_pos >= 0 and new_pos <= 63:
                 move = True #If this is true, player can move to new_pos
                 color_pos = board[new_pos] * self.color 
@@ -133,7 +134,7 @@ class King:
                         move = False
                     if d == 9 and (color_pos < 0 or right_castle == False):
                         move = False
-                    if move == True and spaces_to_edge[d]:
+                    if move == True and d <= 7 and spaces_to_edge[d]:
                         for f in range(16): #Loop over all directions for new coordinate
                             check_pos = new_directions[f] + new_pos
                             if not check_pos == self.pos and check_pos >= 0 and check_pos <= 63:
