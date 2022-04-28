@@ -47,11 +47,10 @@ class King:
         check = []
         check_to_king = [] #The spaces that are in between the king the piece that is checking it
         check_inline = [] #The spaces of the direction being checked (resets after each direction)
-        
+        x = self.pos % 8 
+        y = self.pos // 8
         
         for d in range(8): #Loop over all directions
-            x = self.pos % 8 
-            y = self.pos // 8
             check_pos = knight_directions[d] + self.pos
             spaces_to_edge = [(x > 1) * (y > 0), (x > 0) * (y > 1), (x < 7) * (y > 1), (x < 6) * (y > 0), (x < 6) * (y < 7), (x < 7) * (y < 6), (x > 0) * (y < 6), (x > 1) * (y < 7)]
             if spaces_to_edge[d]:
@@ -126,9 +125,7 @@ class King:
             new_pos = directions[d] + self.pos #Sets a location to the new possible coordinate
             if new_pos >= 0 and new_pos <= 63:
                 move = True #If this is true, player can move to new_pos
-                color_pos = board[new_pos] * self.color
-                x = new_pos % 8 
-                y = new_pos // 8 
+                color_pos = board[new_pos] * self.color 
                 spaces_to_edge = [x, min(y, x), y, min(y, 7-x), 7-x, min(7-y, 7-x), 7-y, min(7-y, x)]
 
                 if directions[d] != 0 and color_pos <= 0: #Does not allow the king's space to be a possible move
@@ -136,13 +133,12 @@ class King:
                         move = False
                     if d == 9 and (color_pos < 0 or right_castle == False):
                         move = False
-                    if move == True:
+                    if move == True and spaces_to_edge[d]:
                         for f in range(16): #Loop over all directions for new coordinate
                             check_pos = new_directions[f] + new_pos
                             if not check_pos == self.pos and check_pos >= 0 and check_pos <= 63:
                                 color_pos = board[check_pos] * self.color
                                 spaces_to_edge = [x, min(y, x), y, min(y, 7-x), 7-x, min(7-y, 7-x), 7-y, min(7-y, x)]
-
                                 if color_pos == -2 and f >= 8: #For knight moves
                                     move = False
                                     break
@@ -159,6 +155,7 @@ class King:
                                                 right_castle = False    
                                             move = False
                                             break
+
                                         elif (color_pos == -3 or color_pos == -5) and f%2 == 1 and f <= 7: #For Bishop and other part of Queen moves
                                             if d == 0:
                                                 left_castle = False
@@ -166,15 +163,15 @@ class King:
                                                 right_castle = False 
                                             move = False
                                             break
-
-                                        elif color_pos == -1 and space == 1 and (f == 1 or f == 3): #For Pawn moves
+                                        
+                                        elif color_pos == -1 and space == 1 and (directions[d] * self.color == 7 or directions[d] * self.color == 9): #For Pawn moves
                                             if d == 0:
                                                 left_castle = False
                                             elif d == 4:
                                                 right_castle = False 
                                             move = False
                                             break
-                                        
+
                                         elif color_pos == -6 and space == 1 and f <= 7: #For King moves
                                             if d == 0:
                                                 left_castle = False
@@ -196,11 +193,12 @@ class King:
                                             break
 
                                         elif color_pos < 0: #Breaks if there is a piece that is not any of the above and is the opposing piece
-                                            break
-                                    
+                                            break 
+                    else:
+                        move = False
+                    
                     if move:
                         possible_spaces.append(new_pos)
-        
         return possible_spaces 
 
 class Rook:
