@@ -146,7 +146,7 @@ class King:
                 new_x = new_pos % 8 
                 new_y = new_pos // 8 
                 new_spaces_to_edge = [new_x, min(new_y, new_x), new_y, min(new_y, 7-new_x), 7-new_x, min(7-new_y, 7-new_x), 7-new_y, min(7-new_y, new_x)]
-
+                knight_spaces_to_edge = [(new_x > 1) * (new_y > 0), (new_x > 0) * (new_y > 1), (new_x < 7) * (new_y > 1), (new_x < 6) * (new_y > 0), (new_x < 6) * (new_y < 7), (new_x < 7) * (new_y < 6), (new_x > 0) * (new_y < 6), (new_x > 1) * (new_y < 7)]
                 if directions[d] != 0 and color_pos <= 0: #Does not allow the king's space to be a possible move
                     if d == 8 and (color_pos < 0 or left_castle == False):
                         move = False
@@ -158,8 +158,8 @@ class King:
                             if not check_pos == self.pos and check_pos >= 0 and check_pos <= 63:
                                 color_pos = board[check_pos] * self.color
                                 #spaces_to_edge = [x, min(y, x), y, min(y, 7-x), 7-x, min(7-y, 7-x), 7-y, min(7-y, x)]
-
-                                if color_pos == -2 and f >= 8: #For knight moves
+                                
+                                if color_pos == -2 and f >= 8 and knight_spaces_to_edge[f-8]: #For knight moves
                                     move = False
                                     break
                                 elif f <= 7:
