@@ -192,8 +192,8 @@ def Interpret(PGN:str, display=False, delay=0.7, start_GUI_game_at="") -> tuple[
                 print(turn)
                 print((old_x, old_y), (new_x, new_y))
 
-            moves.append((Chess.coords_2D_to_1D(old_x, old_y), Chess.coords_2D_to_1D(new_x, new_y), promotion))
-            game.move(Chess.coords_2D_to_1D(old_x, old_y), Chess.coords_2D_to_1D(new_x, new_y), promotion)
+            moves.append((Chess.coords_2D_to_1D(old_x, old_y), Chess.coords_2D_to_1D(new_x, new_y), letter_to_piece_number(promotion) if promotion else None))
+            game.move(Chess.coords_2D_to_1D(old_x, old_y), Chess.coords_2D_to_1D(new_x, new_y), letter_to_piece_number(promotion) if promotion else None)
 
             if display:
                 GUI.display_board(game, (old_x, old_y), (new_x, new_y))
@@ -207,8 +207,8 @@ def Interpret(PGN:str, display=False, delay=0.7, start_GUI_game_at="") -> tuple[
     return boards, moves, [winner] * len(moves)
 
 if __name__ == '__main__':
-    test_pgn = '1. e4 c5 2. Nf3 d6 3. d4 Nf6 4. Nc3 cxd4 5. Nxd4 g6 6. f3 Bg7 7. Be3 O-O 8. Qd2 Nc6 9. Nb3 Be6 10. Bh6 a5 11. Bxg7 Kxg7 12. g4 Ne5 13. Be2 Nc4 14. Bxc4 Bxc4 15. h4 a4 16. Nd4 e5 17. Ndb5 d5 18. g5 Nh5 19. exd5 Nf4 20. O-O-O Ra5 21. Na3 Bxd5 22. Nxd5 Rxd5 23. Qe3 Rxd1+ 24. Rxd1 Qc7 25. Qe4 Qc5 26. Qxb7 Ne2+ 27. Kd2 Qf2 28. Qc7 e4 29. fxe4 Re8 30. e5 Qd4+ 31. Ke1 Qe4 32. Kd2 Rxe5 33. c4 Qf4+ 34. Kc2 Nd4+ 35. Rxd4 Qxd4 36. Qxe5+ Qxe5 37. b4 Qe2+ 0-1'
+    test_pgn = '1. d4 d5 2. c4 e6 3. Nf3 Nf6 4. Nc3 Be7 5. Bf4 O-O 6. e3 c5 7. dxc5 Bxc5 8. Qc2 Nc6 9. a3 a6 10. O-O-O Be7 11. Ng5 g6 12. h4 e5 13. Nxd5 Nxd5 14. Rxd5 Qc7 15. Bg3 Bf5 16. Bd3 Bxd3 17. Qxd3 Rfd8 18. Kb1 b5 19. cxb5 axb5 20. Rc1 Qb6 21. Qxb5 Rdb8 22. Qxb6 Rxb6 23. Rd3 h6 24. Ne4 f5 25. Nd2 Rab8 26. Nc4 Rb5 27. Rc2 Rf8 28. Nd6 Rb6 29. Rdc3 Bxd6 30. Rxc6 Rfb8 31. Ka2 Rxc6 32. Rxc6 Rd8 33. f3 Kf7 34. Be1 Be7 35. Bc3 Bxh4 36. Bxe5 Rd2 37. a4 Bd8 38. Rd6 Rxd6 39. Bxd6 Ke6 40. Bf8 h5 41. Kb3 g5 42. Kc4 g4 43. fxg4 fxg4 44. Kd4 h4 45. Ke4 h3 46. gxh3 gxh3 47. Kf3 Bb6 48. e4 h2 49. Kg2 Ke5 50. b4 Kxe4 51. Kxh2 Kd5 52. Kg3 Ba5 53. bxa5 Kc6 54. Kf4 Kb7 55. Bc5 Ka8 56. Ke5 Kb7 57. Kd6 Ka8 58. Kc7 1/2-1/2'
     #print(test_pgn)
     start = time.time()
-    Interpret(test_pgn, display=True, delay=0.1, start_GUI_game_at="Qf2")
+    Interpret(test_pgn, display=True, delay=0, start_GUI_game_at="")
     print(time.time() - start)
