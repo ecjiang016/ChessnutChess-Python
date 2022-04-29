@@ -124,6 +124,9 @@ class King:
                         else:
                             break
 
+                    elif color_pos < 0:
+                        break
+
         return pinned_pieces, directions, pin_directions, check, check_to_king
 
     def possible_moves(self, board):
