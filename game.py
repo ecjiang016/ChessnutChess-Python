@@ -630,7 +630,7 @@ class Game:
         else: #Black piece
             for i in range(len(self.black_pieces)):
                 if self.black_pieces[i].pos == position:
-                    piece_type = class_to_piece_number(self.white_pieces[i].__class__)
+                    piece_type = class_to_piece_number(self.black_pieces[i].__class__)
                     del self.black_pieces[i]
                     break
 
