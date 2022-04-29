@@ -394,7 +394,7 @@ class Pawn:
     def possible_moves(self, board):
         pinned_location, _, pin_directions, _, check_to_king = self.check_king_variable_thingy
 
-        
+        x = self.pos % 8
         y = self.pos // 8
         move_2 = True
         possible_spaces = []
@@ -424,18 +424,18 @@ class Pawn:
             check_pos = self.pos + self.color
             if (check_to_king == [] or check_to_king == [check_pos]) and self.en_passant == check_pos: #En passant Right
                 possible_spaces.append(self.directions[3] + self.pos)
-
-        check_pos = self.directions[1] + self.pos
-        color_pos = board[check_pos] * self.color
-        if (self.pos not in pinned_location and check_to_king == []) or (len(check_to_king) == 1 and check_pos in check_to_king and (pin_directions[1] < 0 or pin_directions[3] < 0 )):
-            if color_pos < 0:#Can capture diagonal left
-                possible_spaces.append(check_pos)
-
-        check_pos = self.directions[3] + self.pos
-        color_pos = board[check_pos] * self.color
-        if (self.pos not in pinned_location and check_to_king == []) or (len(check_to_king) == 1 and check_pos in check_to_king and (pin_directions[1] < 0 or pin_directions[3] < 0 )):
-            if color_pos < 0:#Can capture diagonal right
-                possible_spaces.append(check_pos)
+        if x >= 1 and x <= 6: #Does not allow pawn to capture diagonal if it will loop to the other side of the board
+            check_pos = self.directions[1] + self.pos
+            color_pos = board[check_pos] * self.color
+            if (self.pos not in pinned_location and check_to_king == []) or (len(check_to_king) == 1 and check_pos in check_to_king and (pin_directions[1] < 0 or pin_directions[3] < 0 )):
+                if color_pos < 0:#Can capture diagonal left
+                    possible_spaces.append(check_pos)
+        if x >= 1 and x <= 6: #Does not allow pawn to capture diagonal if it will loop to the other side of the board
+            check_pos = self.directions[3] + self.pos
+            color_pos = board[check_pos] * self.color
+            if (self.pos not in pinned_location and check_to_king == []) or (len(check_to_king) == 1 and check_pos in check_to_king and (pin_directions[1] < 0 or pin_directions[3] < 0 )):
+                if color_pos < 0:#Can capture diagonal right
+                    possible_spaces.append(check_pos)
 
         return possible_spaces
         
