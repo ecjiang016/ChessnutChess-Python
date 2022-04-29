@@ -46,11 +46,11 @@ class King:
         knight_directions = [-10, -17, -15, -6, 10, 17, 15, 6]
         check = []
         check_to_king = [] #The spaces that are in between the king the piece that is checking it
-        check_inline = [] #The spaces of the direction being checked (resets after each direction)
         x = self.pos % 8 
         y = self.pos // 8
         
         for d in range(8): #Loop over all directions
+            #Check knight
             check_pos = knight_directions[d] + self.pos
             spaces_to_edge = [(x > 1) * (y > 0), (x > 0) * (y > 1), (x < 7) * (y > 1), (x < 6) * (y > 0), (x < 6) * (y < 7), (x < 7) * (y < 6), (x > 0) * (y < 6), (x > 1) * (y < 7)]
             if spaces_to_edge[d]:
@@ -64,15 +64,18 @@ class King:
             if spaces_to_edge[d]:
                 check_pos = directions[d] + self.pos
                 color_pos = board[check_pos] * self.color
+                #Check pawn
                 if color_pos == -1 and (directions[d] * self.color == -7 or directions[d] * self.color == -9):
                     check.append(check_pos)
                     check_to_king.append([check_pos])
+                    break
 
+                check_inline = [] #The spaces of the direction being checked (resets after each direction)
                 for space in range(1, spaces_to_edge[d]+1): #Loop until you hit an opposing piece
                     check_pos = space * directions[d] + self.pos
                     color_pos = board[check_pos] * self.color
                     check_inline.append(check_pos)
-                    if (color_pos == -3 or color_pos == -5) and d%2 == 1: #For Bishop and Queen moves
+                    if (color_pos == -3 or color_pos == -5) and d % 2 == 1: #For Bishop and Queen moves
                         if possible_pin == 1: #Piece is pinned
                             pinned_pieces.append(pin_location)
                             pin_directions[d] = 0
@@ -84,10 +87,20 @@ class King:
                                 directions[d] = 0
                             if d >= 4: #Does not allow king to move backward inline from the check
                                 directions[d-4] = 0
-                            if d <= 3: #Does not allow king to move backward inline from the check
+                                break
+                            else: #Does not allow king to move backward inline from the check
                                 directions[d+4] = 0
                                 break
-                    elif (color_pos == -4 or color_pos == -5) and d%2 == 0: #For Rook and Queen moves
+
+                    elif color_pos == -1: #Check pawn
+                        break
+                    
+                    elif color_pos == -6: #Check king
+                        if space == 2:
+                            directions[d] = 0
+                        break
+
+                    elif (color_pos == -4 or color_pos == -5) and d % 2 == 0: #For Rook and Queen moves
                         if possible_pin == 1: #Piece is pinned
                             pinned_pieces.append(pin_location)
                             pin_directions[d] = 0
@@ -99,9 +112,10 @@ class King:
                                 directions[d] = 0
                             if d >= 4: #Does not allow king to move backward inline from the check
                                 directions[d-4] = 0
-                            if d <= 3: #Does not allow king to move backward inline from the check
+                                break
+                            else: #Does not allow king to move backward inline from the check
                                 directions[d+4] = 0
-                            break
+                                break
 
                     elif color_pos > 0: #Same color
                         if possible_pin == 0: #May be a possible pin
@@ -109,7 +123,7 @@ class King:
                             pin_location = check_pos
                         else:
                             break
-                check_inline = []
+
         return pinned_pieces, directions, pin_directions, check, check_to_king
 
     def possible_moves(self, board):
@@ -118,61 +132,65 @@ class King:
         y = self.pos // 8 
         possible_spaces = []
 
+        spaces_to_edge = [x, min(y, x), y, min(y, 7-x), 7-x, min(7-y, 7-x), 7-y, min(7-y, x), x-2, 5-x]
         new_directions = [-1, -9, -8, -7, 1, 9, 8, 7, -10, -17, -15, -6, 10, 17, 15, 6]
         left_castle, right_castle = self.rook_castle
         for d in range(10): #Loop over all directions
             new_pos = directions[d] + self.pos #Sets a location to the new possible coordinate
-            x = new_pos % 8 
-            y = new_pos // 8 
-            if new_pos >= 0 and new_pos <= 63:
+            if new_pos != self.pos and new_pos >= 0 and new_pos <= 63 and spaces_to_edge[d] > 0:
                 move = True #If this is true, player can move to new_pos
-                color_pos = board[new_pos] * self.color 
-                spaces_to_edge = [x, min(y, x), y, min(y, 7-x), 7-x, min(7-y, 7-x), 7-y, min(7-y, x)]
+                color_pos = board[new_pos] * self.color
+                new_x = new_pos % 8 
+                new_y = new_pos // 8 
+                new_spaces_to_edge = [new_x, min(new_y, new_x), new_y, min(new_y, 7-new_x), 7-new_x, min(7-new_y, 7-new_x), 7-new_y, min(7-new_y, new_x)]
 
                 if directions[d] != 0 and color_pos <= 0: #Does not allow the king's space to be a possible move
                     if d == 8 and (color_pos < 0 or left_castle == False):
                         move = False
                     if d == 9 and (color_pos < 0 or right_castle == False):
                         move = False
-                    if move == True and d <= 7 and spaces_to_edge[d]:
+                    if move == True:
                         for f in range(16): #Loop over all directions for new coordinate
                             check_pos = new_directions[f] + new_pos
                             if not check_pos == self.pos and check_pos >= 0 and check_pos <= 63:
                                 color_pos = board[check_pos] * self.color
-                                spaces_to_edge = [x, min(y, x), y, min(y, 7-x), 7-x, min(7-y, 7-x), 7-y, min(7-y, x)]
+                                #spaces_to_edge = [x, min(y, x), y, min(y, 7-x), 7-x, min(7-y, 7-x), 7-y, min(7-y, x)]
+
                                 if color_pos == -2 and f >= 8: #For knight moves
                                     move = False
                                     break
-                                elif f<=7:
-                                    for space in range(1, spaces_to_edge[f]+1): #Loop until you hit an opposing piece
+                                elif f <= 7:
+                                    for space in range(1, new_spaces_to_edge[f]+1): #Loop until you hit an opposing piece
                                         check_pos = space * new_directions[f] + new_pos
                                         color_pos = board[check_pos] * self.color
                                         if color_pos > 0: #Running into your own piece does not mean a check so king can move there
                                             break
-                                        elif (color_pos == -4 or color_pos == -5) and f%2 == 0 and f <= 7: #For Rook and part of Queen moves
+                                        elif (color_pos == -4 or color_pos == -5) and f % 2 == 0 and f <= 7: #For Rook and part of Queen moves
                                             if d == 0:
                                                 left_castle = False
                                             elif d == 4:
                                                 right_castle = False    
                                             move = False
                                             break
-
-                                        elif (color_pos == -3 or color_pos == -5) and f%2 == 1 and f <= 7: #For Bishop and other part of Queen moves
+                                        elif (color_pos == -3 or color_pos == -5) and f % 2 == 1 and f <= 7: #For Bishop and other part of Queen moves
                                             if d == 0:
                                                 left_castle = False
                                             elif d == 4:
                                                 right_castle = False 
+                                            move = False
+                                            break
+                                        #elif color_pos == -1 and space == 1:
+                                        #    raise Exception
+
+                                        elif color_pos == -1 and space == 1 and (directions[f] * self.color == -7 or directions[f] * self.color == -9): #For Pawn moves
+                                            #if d == 0:
+                                            #    left_castle = False
+                                            #elif d == 4:
+                                            #    right_castle = False
+                                            #raise Exception
                                             move = False
                                             break
                                         
-                                        elif color_pos == -1 and space == 1 and (directions[d] * self.color == 7 or directions[d] * self.color == 9): #For Pawn moves
-                                            if d == 0:
-                                                left_castle = False
-                                            elif d == 4:
-                                                right_castle = False 
-                                            move = False
-                                            break
-
                                         elif color_pos == -6 and space == 1 and f <= 7: #For King moves
                                             if d == 0:
                                                 left_castle = False
@@ -194,12 +212,16 @@ class King:
                                             break
 
                                         elif color_pos < 0: #Breaks if there is a piece that is not any of the above and is the opposing piece
-                                            break 
-                    else:
-                        move = False
-                    
+                                            break
+
+                                    
                     if move:
                         possible_spaces.append(new_pos)
+
+                    #if new_pos == 29 and self.pos==21 and f == 15:
+                    #    raise Exception
+        
+
         return possible_spaces 
 
 class Rook:
