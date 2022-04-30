@@ -33,7 +33,7 @@ class King:
         self.pos = pos
         self.color = color #1 for white, -1 for black
         self.rook_castle = [True, True] #Left then right rook
-        self.check_king_variable_thingy = None, [-1, -9, -8, -7, 1, 9, 8, 7, -2, 2], None, None, None, None
+        self.check_king_variable_thingy = None, [-1, -9, -8, -7, 1, 9, 8, 7, -2, 2], None, False, None, None
 
     def pin_check(self, board): 
         """
@@ -50,7 +50,6 @@ class King:
         pinner_to_king = []
         x = self.pos % 8 
         y = self.pos // 8
-        k=1
         
         for d in range(8): #Loop over all directions
             #Check knight
@@ -135,7 +134,7 @@ class King:
         return pinned_pieces, directions, pin_directions, check, check_to_king, pinner_to_king
 
     def possible_moves(self, board):
-        _, directions, _, _, _, _ = self.check_king_variable_thingy
+        _, directions, _, check, _, _ = self.check_king_variable_thingy
         x = self.pos % 8 
         y = self.pos // 8 
         possible_spaces = []
@@ -153,9 +152,9 @@ class King:
                 new_spaces_to_edge = [new_x, min(new_y, new_x), new_y, min(new_y, 7-new_x), 7-new_x, min(7-new_y, 7-new_x), 7-new_y, min(7-new_y, new_x)]
                 knight_spaces_to_edge = [(new_x > 1) * (new_y > 0), (new_x > 0) * (new_y > 1), (new_x < 7) * (new_y > 1), (new_x < 6) * (new_y > 0), (new_x < 6) * (new_y < 7), (new_x < 7) * (new_y < 6), (new_x > 0) * (new_y < 6), (new_x > 1) * (new_y < 7)]
                 if directions[d] != 0 and color_pos <= 0: #Does not allow the king's space to be a possible move
-                    if d == 8 and (color_pos < 0 or left_castle == False):
+                    if d == 8 and (color_pos < 0 or left_castle == False or check != []):
                         move = False
-                    if d == 9 and (color_pos < 0 or right_castle == False):
+                    if d == 9 and (color_pos < 0 or right_castle == False or check != []):
                         move = False
                     if move == True:
                         for f in range(16): #Loop over all directions for new coordinate
