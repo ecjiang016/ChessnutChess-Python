@@ -33,7 +33,7 @@ class King:
         self.pos = pos
         self.color = color #1 for white, -1 for black
         self.rook_castle = [True, True] #Left then right rook
-        self.check_king_variable_thingy = None, [-1, -9, -8, -7, 1, 9, 8, 7, -2, 2], None, None, None
+        self.check_king_variable_thingy = None, [-1, -9, -8, -7, 1, 9, 8, 7, -2, 2], None, None, None, None
 
     def pin_check(self, board): 
         """
@@ -43,11 +43,14 @@ class King:
         pinned_pieces = []
         directions = [-1, -9, -8, -7, 1, 9, 8, 7, -2, 2]
         pin_directions = [-1, -9, -8, -7, 1, 9, 8, 7]
+        pinner_location = []
         knight_directions = [-10, -17, -15, -6, 10, 17, 15, 6]
         check = []
         check_to_king = [] #The spaces that are in between the king the piece that is checking it
+        pinner_to_king = []
         x = self.pos % 8 
         y = self.pos // 8
+        k=1
         
         for d in range(8): #Loop over all directions
             #Check knight
@@ -70,7 +73,7 @@ class King:
                     check_to_king.append([check_pos])
                     break
 
-                check_inline = [] #The spaces of the direction being checked (resets after each direction)
+                check_inline = [] #The spaces of the direction being checked or pinned (resets after each direction)
                 for space in range(1, spaces_to_edge[d]+1): #Loop until you hit an opposing piece
                     check_pos = space * directions[d] + self.pos
                     color_pos = board[check_pos] * self.color
@@ -91,18 +94,17 @@ class King:
                             else: #Does not allow king to move backward inline from the check
                                 directions[d+4] = 0
                                 break
-
-                    elif color_pos == -1: #Check pawn
-                        break
                     
                     elif color_pos == -6: #Check king
                         if space == 2:
                             directions[d] = 0
+                        possible_pin = 0
                         break
 
                     elif (color_pos == -4 or color_pos == -5) and d % 2 == 0: #For Rook and Queen moves
                         if possible_pin == 1: #Piece is pinned
                             pinned_pieces.append(pin_location)
+                            pinner_location.append(check_pos)
                             pin_directions[d] = 0
                             break
                         elif possible_pin == 0: #In check horizontally/vertically
@@ -122,15 +124,18 @@ class King:
                             possible_pin = 1
                             pin_location = check_pos
                         else:
+                            possible_pin = 0
                             break
 
                     elif color_pos < 0:
+                        possible_pin = 0
                         break
-
-        return pinned_pieces, directions, pin_directions, check, check_to_king
+                if pin_directions[d] == 0:
+                    pinner_to_king.append(check_inline)
+        return pinned_pieces, directions, pin_directions, check, check_to_king, pinner_to_king
 
     def possible_moves(self, board):
-        _, directions, _, _, _ = self.check_king_variable_thingy
+        _, directions, _, _, _, _ = self.check_king_variable_thingy
         x = self.pos % 8 
         y = self.pos // 8 
         possible_spaces = []
@@ -195,10 +200,10 @@ class King:
                                             break
                                         
                                         elif color_pos == -6 and space == 1 and f <= 7: #For King moves
-                                            if d == 0:
-                                                left_castle = False
-                                            elif d == 4:
-                                                right_castle = False 
+                                            #if d == 0:
+                                            #    left_castle = False
+                                            #elif d == 4:
+                                            #    right_castle = False 
                                             move = False
                                             break
                                         elif d == 8: #Left Castle
@@ -231,43 +236,56 @@ class Rook:
     def __init__(self, pos, color):
         self.pos = pos
         self.color = color #1 for white, -1 for black
-        self.check_king_variable_thingy = [], None, [], None, []
+        self.check_king_variable_thingy = [], None, [], None, [], []
 
     def possible_moves(self, board):
-        pinned_location, _, pin_directions, _, check_to_king = self.check_king_variable_thingy
+        pinned_location, _, pin_directions, _, check_to_king, pinner_to_king = self.check_king_variable_thingy
         directions = [-1, -8, 1, 8]
         x = self.pos % 8
         y = self.pos // 8
         spaces_to_edge = [x, y, 7-x, 7-y]
-
         possible_spaces = []
+        _possible_spaces = []
+
+        if self.pos in pinned_location:
+            for n in range(len(pinner_to_king)):
+                if self.pos in pinner_to_king[n]:
+                    pin_number = n
+
         for d in range(4): #Loop over all directions
+            possible_line = []
             for space in range(1, spaces_to_edge[d]+1): #Loop until you hit an opposing piece
-                check_pos = space * directions[d] + self.pos #Position being checked
-                color_pos = board[check_pos] * self.color #Positive if piece is friendy, negative if not
-                if check_to_king == []: #King is not in check
-                    if self.pos in pinned_location and (pin_directions[d*2] == 0 or pin_directions[2*3-4] == 0): #When pinned, only allows to move in the pinned direction
-                        if color_pos < 0:
-                            possible_spaces.append(check_pos) #Can capture
-                            break
-                        elif color_pos > 0: 
-                            break
-                        else:
-                            possible_spaces.append(check_pos)
-                    
-                    elif not self.pos in pinned_location: #Not pinned
+                check_pos = space * directions[d] + self.pos
+                color_pos = board[check_pos] * self.color
+                if check_to_king == []:
+                    if self.pos not in pinned_location:
                         if color_pos > 0:
                             break
                         if color_pos < 0:
-                            possible_spaces.append(check_pos) #Can capture
+                            possible_line.append(check_pos) #Can capture
                             break
                         else:
-                            possible_spaces.append(check_pos)
-                elif check_pos in check_to_king[0] and not self.pos in pinned_location and len(check_to_king) == 1: #Can capture the piece checking the king or block a check (is not pinned)
-                    possible_spaces.append(check_pos)
+                            possible_line.append(check_pos)
+                    elif self.pos in pinned_location and (pin_directions[d*2] == 0 or pin_directions[d*2-4] == 0): #When pinned, only allows to move in the pinned direction
+                        if color_pos < 0:
+                            if check_pos in pinner_to_king[pin_number] and pin_directions[d*2] == 0:
+                                possible_line.append(check_pos) #Can capture
+                                break
+                            else:
+                                possible_line = [] #Cannot go in that line
+                                break
+                        elif color_pos > 0:
+                            break
+                        else:
+                            possible_line.append(check_pos)
+            
+                elif check_pos in check_to_king[0] and self.pos not in pinned_location and len(check_to_king) == 1: #Can capture the piece checking the king or block a check
+                    possible_line.append(check_pos)
                     break
                 if color_pos > 0:
                     break
+            _possible_spaces.append(possible_line) 
+        possible_spaces = [item for sublist in _possible_spaces for item in sublist]
 
         return possible_spaces 
 
@@ -275,45 +293,56 @@ class Bishop:
     def __init__(self, pos, color):
         self.pos = pos
         self.color = color #1 for white, -1 for black
-        self.check_king_variable_thingy = [], None, [], None, []
+        self.check_king_variable_thingy = [], None, [], None, [], []
 
     def possible_moves(self, board):
-        pinned_location, _, pin_directions, _, check_to_king = self.check_king_variable_thingy
-        pin_directions = [-1, -9, -8, -7, 1, 9, 8, 7]
+        pinned_location, _, pin_directions, _, check_to_king, pinner_to_king = self.check_king_variable_thingy
         directions = [-9, -7, 9, 7]
         x = self.pos % 8
         y = self.pos // 8
         spaces_to_edge = [min(y, x), min(y, 7-x), min(7-y, 7-x), min(7-y, x)]
-
         possible_spaces = []
-
+        _possible_spaces = []
+        
+        if self.pos in pinned_location:
+            for n in range(len(pinner_to_king)):
+                if self.pos in pinner_to_king[n]:
+                    pin_number = n
+        
         for d in range(4): #Loop over all directions
+            possible_line = []
             for space in range(1, spaces_to_edge[d]+1): #Loop until you hit an opposing piece
-                check_pos = space * directions[d] + self.pos  #Position being checked
-                color_pos = board[check_pos] * self.color #Positive if piece is friendy, negative if not
-                if check_to_king == []:#King is not in check
-                    if self.pos in pinned_location and (pin_directions[d*2+1] == 0 or pin_directions[d*2-3]): #When pinned, only allows to move in the pinned direction
-                        if color_pos < 0:
-                            possible_spaces.append(check_pos) #Can capture
-                            break
-                        elif color_pos > 0: 
-                            break
-                        else:
-                            possible_spaces.append(check_pos)
-                    
-                    elif not self.pos in pinned_location:
+                check_pos = space * directions[d] + self.pos
+                color_pos = board[check_pos] * self.color
+                if check_to_king == []:
+                    if self.pos not in pinned_location:
                         if color_pos > 0:
                             break
                         if color_pos < 0:
-                            possible_spaces.append(check_pos) #Can capture
+                            possible_line.append(check_pos) #Can capture
                             break
                         else:
-                            possible_spaces.append(check_pos)
-                elif check_pos in check_to_king[0] and not self.pos in pinned_location and len(check_to_king) == 1: #Can capture the piece checking the king or block a check
-                    possible_spaces.append(check_pos)
+                            possible_line.append(check_pos)
+                    elif self.pos in pinned_location and (pin_directions[d*2+1] == 0 or pin_directions[d*2-3] == 0): #When pinned, only allows to move in the pinned direction
+                        if color_pos < 0:
+                            if check_pos in pinner_to_king[pin_number] and pin_directions[d*2+1] == 0:
+                                possible_line.append(check_pos) #Can capture
+                                break
+                            else:
+                                possible_line = [] #Cannot go in that line
+                                break
+                        elif color_pos > 0: 
+                            break
+                        else:
+                            possible_line.append(check_pos)
+            
+                elif check_pos in check_to_king[0] and self.pos not in pinned_location and len(check_to_king) == 1: #Can capture the piece checking the king or block a check
+                    possible_line.append(check_pos)
                     break
-                if color_pos > 0: 
+                if color_pos > 0:
                     break
+            _possible_spaces.append(possible_line) 
+        possible_spaces = [item for sublist in _possible_spaces for item in sublist]
 
         return possible_spaces
 
@@ -321,17 +350,17 @@ class Knight:
     def __init__(self, pos, color):
         self.pos = pos
         self.color = color #1 for white, -1 for black
-        self.check_king_variable_thingy = [], None, None, [], []
+        self.check_king_variable_thingy = [], None, None, [], [], None
     
     def possible_moves(self, board):
-        pinned_location, _, _, check_location, check_to_king = self.check_king_variable_thingy
+        pinned_location, _, _, check_location, check_to_king, _ = self.check_king_variable_thingy
 
         directions = [-10, -17, -15, -6, 10, 17, 15, 6]
         x = self.pos % 8
         y = self.pos // 8
         spaces_to_edge = [(x > 1) * (y > 0), (x > 0) * (y > 1), (x < 7) * (y > 1), (x < 6) * (y > 0), (x < 6) * (y < 7), (x < 7) * (y < 6), (x > 0) * (y < 6), (x > 1) * (y < 7)]
         possible_spaces = []
-        if not self.pos in pinned_location: 
+        if self.pos not in pinned_location: 
             for d in range(8): #Loop over all directions
                 if spaces_to_edge[d]:
                     check_pos = directions[d] + self.pos #Position being checked
@@ -347,62 +376,76 @@ class Queen:
     def __init__(self, pos, color):
         self.pos = pos
         self.color = color #1 for white, -1 for black
-        self.check_king_variable_thingy = [], None, [], None, []
+        self.check_king_variable_thingy = [], None, [], None, [], []
 
     def possible_moves(self, board):
-        pinned_location, _, pin_directions, _, check_to_king = self.check_king_variable_thingy
+        pinned_location, _, pin_directions, _, check_to_king, pinner_to_king = self.check_king_variable_thingy
 
         directions = [-1, -9, -8, -7, 1, 9, 8, 7]
         x = self.pos % 8 
         y = self.pos // 8
         spaces_to_edge = [x, min(y, x), y, min(y, 7-x), 7-x, min(7-y, 7-x), 7-y, min(7-y, x)]
         possible_spaces = []
+        _possible_spaces = []
+
+        if self.pos in pinned_location:
+            for n in range(len(pinner_to_king)):
+                if self.pos in pinner_to_king[n]:
+                    pin_number = n
         
         for d in range(8): #Loop over all directions
+            possible_line = []
             for space in range(1, spaces_to_edge[d]+1): #Loop until you hit an opposing piece
                 check_pos = space * directions[d] + self.pos
                 color_pos = board[check_pos] * self.color
                 if check_to_king == []:
-                    if self.pos in pinned_location and (pin_directions[d] == 0 or pin_directions[d-4] == 0): #King is not in check and piece is pinned
-                        if color_pos < 0:
-                            possible_spaces.append(check_pos) #Can capture
-                            break
-                        elif color_pos > 0:
-                            break
-                        else:
-                            possible_spaces.append(check_pos)
-                    
-                    elif not self.pos in pinned_location: 
+                    if self.pos not in pinned_location:
                         if color_pos > 0:
                             break
                         if color_pos < 0:
-                            possible_spaces.append(check_pos) #Can capture
+                            possible_line.append(check_pos) #Can capture
                             break
                         else:
-                            possible_spaces.append(check_pos)
-                elif check_pos in check_to_king[0] and not self.pos in pinned_location and len(check_to_king) == 1: #Can capture the piece checking the king or block a check
-                    possible_spaces.append(check_pos)
+                            possible_line.append(check_pos)
+                    elif self.pos in pinned_location and (pin_directions[d] == 0 or pin_directions[d-4] == 0): #When pinned, only allows to move in the pinned direction
+                        if color_pos < 0:
+                            if check_pos in pinner_to_king[pin_number] and pin_directions[d] == 0:
+                                possible_line.append(check_pos) #Can capture
+                                break
+                            else:
+                                possible_line = [] #Cannot go in that line
+                                break
+                        elif color_pos > 0: 
+                            break
+                        else:
+                            possible_line.append(check_pos)
+
+                elif check_pos in check_to_king[0] and self.pos not in pinned_location and len(check_to_king) == 1: #Can capture the piece checking the king or block a check
+                    possible_line.append(check_pos)
                     break
                 if color_pos > 0:
                     break
+            _possible_spaces.append(possible_line) 
+        possible_spaces = [item for sublist in _possible_spaces for item in sublist]
+
         return possible_spaces
 
 class Pawn:
     def __init__(self, pos, color):
         self.pos = pos
         self.color = color #1 for white, -1 for black
-        self.check_king_variable_thingy = [], None, [], None, []
+        self.check_king_variable_thingy = [], None, [], None, [], None
         self.en_passant = None
         self.directions = [-16 * self.color, -9 * self.color, -8 * self.color, -7 * self.color]
 
     def possible_moves(self, board):
-        pinned_location, _, pin_directions, _, check_to_king = self.check_king_variable_thingy
+        pinned_location, _, pin_directions, _, check_to_king, _ = self.check_king_variable_thingy
 
         x = self.pos % 8
         y = self.pos // 8
         move_2 = True
         possible_spaces = []
-        if not self.pos in pinned_location or abs(sum(pin_directions)) == 8:
+        if self.pos not in pinned_location or abs(sum(pin_directions)) == 8:
             check_pos = self.directions[2] + self.pos
             color_pos = board[check_pos] * self.color
             if color_pos == 0 and (check_to_king == [] or (check_pos in check_to_king[0] and len(check_to_king) == 1)): #Move one forward
@@ -420,7 +463,7 @@ class Pawn:
             if color_pos == 0 and move_2 == True and (check_to_king == [] or (check_pos in check_to_king[0] and len(check_to_king) == 1)): #Can move two forward
                 possible_spaces.append(check_pos)
 
-        if not self.pos in pinned_location:
+        if self.pos not in pinned_location:
             check_pos = self.pos - self.color
             if (check_to_king == [] or check_to_king == [check_pos]) and self.en_passant == check_pos: #En passant Left
                 possible_spaces.append(self.directions[1] + self.pos)
@@ -428,17 +471,17 @@ class Pawn:
             check_pos = self.pos + self.color
             if (check_to_king == [] or check_to_king == [check_pos]) and self.en_passant == check_pos: #En passant Right
                 possible_spaces.append(self.directions[3] + self.pos)
-        if (x >= 1 and self.color == 1) or (x <= 6 and self.color == 1): #Does not allow pawn to capture diagonal if it will loop to the other side of the board
+        if (x >= 1 and self.color == 1) or (x <= 6 and self.color == -1): #Does not allow pawn to capture diagonal if it will loop to the other side of the board
 
             check_pos = self.directions[1] + self.pos
             color_pos = board[check_pos] * self.color
-            if (self.pos not in pinned_location and check_to_king == []) or (len(check_to_king) == 1 and check_pos in check_to_king and (pin_directions[1] < 0 or pin_directions[3] < 0 )):
+            if (self.pos not in pinned_location and check_to_king == []) or ((check_to_king == [] or (len(check_to_king) == 1 and check_pos in check_to_king)) and (pin_directions[1] < 0 or pin_directions[3] < 0 )):
                 if color_pos < 0:#Can capture diagonal left
                     possible_spaces.append(check_pos)
         if (x >= 1 and self.color == -1) or (x <= 6 and self.color == 1): #Does not allow pawn to capture diagonal if it will loop to the other side of the board
             check_pos = self.directions[3] + self.pos
             color_pos = board[check_pos] * self.color
-            if (self.pos not in pinned_location and check_to_king == []) or (len(check_to_king) == 1 and check_pos in check_to_king and (pin_directions[1] < 0 or pin_directions[3] < 0 )):
+            if (self.pos not in pinned_location and check_to_king == []) or ((check_to_king == [] or (len(check_to_king) == 1 and check_pos in check_to_king)) and (pin_directions[1] < 0 or pin_directions[3] < 0 )):
                 if color_pos < 0:#Can capture diagonal right
                     possible_spaces.append(check_pos)
 
@@ -617,15 +660,15 @@ class Game:
     def king_check(self):
         king_pos = np.argmax(self.board * self.player_color)
         k = King(king_pos, self.player_color)
-        pinned_location, directions, pin_directions, self.check_location, check_to_king = k.pin_check(self.board)
+        pinned_location, directions, pin_directions, self.check_location, check_to_king, pinner_to_king = k.pin_check(self.board)
         
         if self.player_color == 1: #Update white king
             for white_piece in self.white_pieces:
-                white_piece.check_king_variable_thingy = pinned_location, directions, pin_directions, self.check_location, check_to_king
+                white_piece.check_king_variable_thingy = pinned_location, directions, pin_directions, self.check_location, check_to_king, pinner_to_king
             
         else: #Update black king
             for black_piece in self.black_pieces:
-                black_piece.check_king_variable_thingy = pinned_location, directions, pin_directions, self.check_location, check_to_king
+                black_piece.check_king_variable_thingy = pinned_location, directions, pin_directions, self.check_location, check_to_king, pinner_to_king
 
     def delete_piece(self, position, color):
         if color == 1: #White piece
