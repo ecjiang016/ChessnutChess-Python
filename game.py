@@ -235,7 +235,6 @@ class Rook:
 
     def possible_moves(self, board):
         pinned_location, _, pin_directions, _, check_to_king = self.check_king_variable_thingy
-
         directions = [-1, -8, 1, 8]
         x = self.pos % 8
         y = self.pos // 8
@@ -247,9 +246,11 @@ class Rook:
                 check_pos = space * directions[d] + self.pos #Position being checked
                 color_pos = board[check_pos] * self.color #Positive if piece is friendy, negative if not
                 if check_to_king == []: #King is not in check
-                    if self.pos in pinned_location and pin_directions[d*2] == 0: #When pinned, only allows to move in the pinned direction
+                    if self.pos in pinned_location and (pin_directions[d*2] == 0 or pin_directions[2*3-4] == 0): #When pinned, only allows to move in the pinned direction
                         if color_pos < 0:
                             possible_spaces.append(check_pos) #Can capture
+                            break
+                        elif color_pos > 0: 
                             break
                         else:
                             possible_spaces.append(check_pos)
@@ -278,7 +279,7 @@ class Bishop:
 
     def possible_moves(self, board):
         pinned_location, _, pin_directions, _, check_to_king = self.check_king_variable_thingy
-
+        pin_directions = [-1, -9, -8, -7, 1, 9, 8, 7]
         directions = [-9, -7, 9, 7]
         x = self.pos % 8
         y = self.pos // 8
@@ -291,9 +292,11 @@ class Bishop:
                 check_pos = space * directions[d] + self.pos  #Position being checked
                 color_pos = board[check_pos] * self.color #Positive if piece is friendy, negative if not
                 if check_to_king == []:#King is not in check
-                    if self.pos in pinned_location and pin_directions[d*2+1] == 0: #When pinned, only allows to move in the pinned direction
+                    if self.pos in pinned_location and (pin_directions[d*2+1] == 0 or pin_directions[d*2-3]): #When pinned, only allows to move in the pinned direction
                         if color_pos < 0:
                             possible_spaces.append(check_pos) #Can capture
+                            break
+                        elif color_pos > 0: 
                             break
                         else:
                             possible_spaces.append(check_pos)
@@ -360,9 +363,11 @@ class Queen:
                 check_pos = space * directions[d] + self.pos
                 color_pos = board[check_pos] * self.color
                 if check_to_king == []:
-                    if self.pos in pinned_location and pin_directions[d] == 0: #King is not in check and piece is pinned
+                    if self.pos in pinned_location and (pin_directions[d] == 0 or pin_directions[d-4] == 0): #King is not in check and piece is pinned
                         if color_pos < 0:
                             possible_spaces.append(check_pos) #Can capture
+                            break
+                        elif color_pos > 0:
                             break
                         else:
                             possible_spaces.append(check_pos)
@@ -380,7 +385,6 @@ class Queen:
                     break
                 if color_pos > 0:
                     break
-
         return possible_spaces
 
 class Pawn:
@@ -424,13 +428,14 @@ class Pawn:
             check_pos = self.pos + self.color
             if (check_to_king == [] or check_to_king == [check_pos]) and self.en_passant == check_pos: #En passant Right
                 possible_spaces.append(self.directions[3] + self.pos)
-        if x >= 1 and x <= 6: #Does not allow pawn to capture diagonal if it will loop to the other side of the board
+        if (x >= 1 and self.color == 1) or (x <= 6 and self.color == 1): #Does not allow pawn to capture diagonal if it will loop to the other side of the board
+
             check_pos = self.directions[1] + self.pos
             color_pos = board[check_pos] * self.color
             if (self.pos not in pinned_location and check_to_king == []) or (len(check_to_king) == 1 and check_pos in check_to_king and (pin_directions[1] < 0 or pin_directions[3] < 0 )):
                 if color_pos < 0:#Can capture diagonal left
                     possible_spaces.append(check_pos)
-        if x >= 1 and x <= 6: #Does not allow pawn to capture diagonal if it will loop to the other side of the board
+        if (x >= 1 and self.color == -1) or (x <= 6 and self.color == 1): #Does not allow pawn to capture diagonal if it will loop to the other side of the board
             check_pos = self.directions[3] + self.pos
             color_pos = board[check_pos] * self.color
             if (self.pos not in pinned_location and check_to_king == []) or (len(check_to_king) == 1 and check_pos in check_to_king and (pin_directions[1] < 0 or pin_directions[3] < 0 )):
@@ -500,6 +505,9 @@ class Game:
             promotion = 5
 
         if promotion: #Changes the new coord to the type of piece when a pawn is being promoted
+            if self.board[new_coord] * self.player_color < 0: #Promotion captures a piece
+                self.delete_piece(new_coord, -self.player_color)
+
             self.board[new_coord] = promotion * self.player_color
             self.delete_piece(old_coord, self.player_color) #Delete the pawn being promoted
 
