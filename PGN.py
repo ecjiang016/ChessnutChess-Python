@@ -188,8 +188,7 @@ def Interpret(PGN:str, display=False, delay=0.7, start_GUI_game_at="") -> tuple[
                             new_x = 2
                             new_y = 0
             
-            else:
-                boards.append(game.board)
+            boards.append(game.board)
 
             if display:
                 print(turn)
