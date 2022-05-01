@@ -1,6 +1,9 @@
 import numpy as np
 import time
-import game as Chess
+try:
+    import game as Chess
+except ModuleNotFoundError:
+    from . import game as Chess
 
 def letter_to_index(letter:str) -> int:
     return ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'].index(letter)

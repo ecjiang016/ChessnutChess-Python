@@ -1,8 +1,12 @@
 import pygame
 import time
 import numpy as np
-from game import Game, coords_2D_to_1D
 import os
+try:
+    from game import Game, coords_2D_to_1D
+except ModuleNotFoundError:
+    from .game import Game, coords_2D_to_1D
+
 
 WINDOW_SIZE = 800
 TILE_SIZE = WINDOW_SIZE // 8
