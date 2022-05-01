@@ -2,6 +2,7 @@ import pygame
 import time
 import numpy as np
 from game import Game, coords_2D_to_1D
+import os
 
 WINDOW_SIZE = 800
 TILE_SIZE = WINDOW_SIZE // 8
@@ -9,20 +10,23 @@ TILE_SIZE = WINDOW_SIZE // 8
 pygame.init()
 screen = pygame.display.set_mode((WINDOW_SIZE, WINDOW_SIZE))
 
-images = [
-    pygame.image.load('Chess Pieces/pl.png'),
-    pygame.image.load('Chess Pieces/nl.png'),
-    pygame.image.load('Chess Pieces/bl.png'),
-    pygame.image.load('Chess Pieces/rl.png'),
-    pygame.image.load('Chess Pieces/ql.png'),
-    pygame.image.load('Chess Pieces/kl.png'),
-    pygame.image.load('Chess Pieces/kd.png'),
-    pygame.image.load('Chess Pieces/qd.png'),
-    pygame.image.load('Chess Pieces/rd.png'),
-    pygame.image.load('Chess Pieces/bd.png'),
-    pygame.image.load('Chess Pieces/nd.png'),
-    pygame.image.load('Chess Pieces/pd.png')
+image_names = [
+    'pl.png',
+    'nl.png',
+    'bl.png',
+    'rl.png',
+    'ql.png',
+    'kl.png',
+    'kd.png',
+    'qd.png',
+    'rd.png',
+    'bd.png',
+    'nd.png',
+    'pd.png'
 ]
+
+paths = [os.path.join(os.path.dirname(__file__), "Chess Pieces", image_names[i]) for i in range(12)]
+images = [pygame.image.load(path) for path in paths]
 
 pieces = []
 for i in range(12):
