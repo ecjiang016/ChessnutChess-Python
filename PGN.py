@@ -202,8 +202,8 @@ def Interpret(PGN:str, display=False, delay=0.7, start_GUI_game_at="") -> tuple[
                 GUI.display_board(game, (old_x, old_y), (new_x, new_y))
                 time.sleep(delay)
 
-    
-    print(f"{winner} (PGN)")
+    if display:
+       print(f"{winner} (PGN)")
     if checkmate:
         assert game.result == winner
 
