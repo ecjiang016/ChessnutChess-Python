@@ -140,6 +140,55 @@ def display_board(game, old_xy=None, new_xy=None):
 
     pygame.display.flip()
 
+def single_move(game):
+    screen = pygame.display.set_mode((WINDOW_SIZE, WINDOW_SIZE))
+    clock = pygame.time.Clock()
+    board_surface = create_background_board(np.zeros((8, 8)), (0, 0, 0))
+    selected_piece = 0, -1, -1
+
+    while True:
+        piece, x, y = get_square_under_mouse(np.array(game.board).reshape(8, 8))
+        selected_x, selected_y = selected_piece[1:3]
+        piece_moves = coords_to_mask(game.get_moves(coords_2D_to_1D(selected_x, selected_y), game.player_color))
+        board_surface = create_background_board(piece_moves, selected_piece)
+
+        events = pygame.event.get()
+        for event in events:
+            if event.type == pygame.QUIT:
+                return
+
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if piece != None and np.sign(piece) == game.player_color:
+                    selected_piece = piece, x, y
+
+            elif event.type == pygame.MOUSEBUTTONUP:
+                if drop_pos:
+                    new_x, new_y = drop_pos
+                    if piece_moves[new_y, new_x] == 1:
+                        piece, old_x, old_y = selected_piece
+                        promote = None
+                        if (piece == 1 and new_y == 0) or (piece == -1 and new_y == 7):
+                            promote = ""
+                            while promote.upper() not in ["Q", "N", "R", "B"]:
+                                promote = input("Promote to Q, R, B, or N: ")
+
+                            promote = {"Q":5, "N":2, "R":4, "B":3}[promote.upper()]
+                            
+                        game.move(coords_2D_to_1D(old_x, old_y), coords_2D_to_1D(new_x, new_y), promote)
+                        return game
+
+                selected_piece = 0, -1, -1
+                drop_pos = None
+
+        screen.fill(pygame.Color('grey'))
+
+        screen.blit(board_surface, (0, 0))
+        draw_pieces(screen, np.array(game.board).reshape(8, 8), selected_piece)
+        drop_pos = draw_drag(screen, np.array(game.board).reshape(8, 8), selected_piece)
+
+        pygame.display.flip()
+        clock.tick(60)
+
 def main(load=False):
     """
     Args:
