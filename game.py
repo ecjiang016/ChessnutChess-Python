@@ -778,6 +778,12 @@ class Game:
             moves += [(old_pos, new_pos) for new_pos in piece_number]
         return moves
 
+    def all_moves(self):
+        """
+        Returns all the current player's moves in a list with tuples of `(old_coord, new_coord)`
+        """
+        return self.all_white_moves() if self.player_color == 1 else self.all_black_moves()
+
     def outcome(self): #outcome is 1 for white win, 0 for draw, and -1 for black win
         """
         Returns 1 for white win, 0 for draw and -1 for black win.
