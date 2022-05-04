@@ -112,8 +112,9 @@ def draw_drag(screen, board, selected_piece):
         return (x, y)
 
 def display_board(game, old_xy=None, new_xy=None):
-    old_x, old_y = old_xy
-    new_x, new_y = new_xy
+    if old_xy != None and new_xy != None:
+        old_x, old_y = old_xy
+        new_x, new_y = new_xy
 
     screen = pygame.display.set_mode((WINDOW_SIZE, WINDOW_SIZE))
 

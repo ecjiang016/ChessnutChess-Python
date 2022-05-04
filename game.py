@@ -477,13 +477,19 @@ class Pawn:
                             move = True
                         if space == spaces_to_edge[d]+1 and color_pos != 6:
                             move = True
-            check_pos = self.pos - self.color  
+            check_pos = self.pos - self.color
             if (check_to_king == [] or check_to_king == [check_pos]) and (self.pos not in pinned_location or pin_directions[1] == 0) and self.en_passant == check_pos and move == True: #En passant Left
-                possible_spaces.append(self.directions[1] + self.pos)
+                if self.color == 1 and y == 3:
+                    possible_spaces.append(self.directions[1] + self.pos)
+                elif self.color == -1 and y == 4:
+                    possible_spaces.append(self.directions[1] + self.pos)
 
             check_pos = self.pos + self.color
-            if (check_to_king == [] or check_to_king == [check_pos]) and (self.pos not in pinned_location or pin_directions[3] == 0) and self.en_passant == check_pos and move == True: #En passant Left
-                possible_spaces.append(self.directions[3] + self.pos)
+            if (check_to_king == [] or check_to_king == [check_pos]) and (self.pos not in pinned_location or pin_directions[3] == 0) and self.en_passant == check_pos and move == True: #En passant Right
+                if self.color == 1 and y == 3:
+                    possible_spaces.append(self.directions[3] + self.pos)
+                elif self.color == -1 and y == 4:
+                    possible_spaces.append(self.directions[3] + self.pos)
 
         if (x >= 1 and self.color == 1) or (x <= 6 and self.color == -1): #Does not allow pawn to capture diagonal left if it will loop to the other side of the board
             check_pos = self.directions[1] + self.pos
@@ -539,7 +545,6 @@ class Game:
     def move(self, old_coord, new_coord, promotion=None):
         piece = self.board[old_coord]
         capture = self.board[new_coord]
-
         self.piece_cache.append((piece, capture)) #Add to cache for undos
 
         #Get rid of pawn when En Passant
@@ -793,22 +798,27 @@ class Game:
         `capture`: The color and type of the piece that used to be on `new_coord`
         `moved_piece`: The color and type of the piece that is now on `new_coord`
         """
+        self.player_color *= -1
+
         moved_piece, capture = self.piece_cache[-1]
         del self.piece_cache[-1]
-        piece_class = {1:Pawn, 2:Knight, 3:Bishop, 4:Rook, 5:Queen}[abs(capture)]
+
+        if capture:
+            piece_class = {1:Pawn, 2:Knight, 3:Bishop, 4:Rook, 5:Queen}[abs(capture)]
+
         #Add pawn for En Passant
-        if new_coord == 0 and abs(moved_piece) == 1 and (old_coord % 8 != new_coord % 8):
+        if capture == 0 and abs(moved_piece) == 1 and (old_coord % 8 != new_coord % 8):
             replaced_piece = new_coord+(self.player_color*8)
             self.board[replaced_piece] = -self.player_color
             if self.player_color == 1:
-                self.black_pieces.append(piece_class(old_coord, -self.player_color))
+                self.black_pieces.append(piece_class(old_coord, -1))
             else:
-                self.white_pieces.append(piece_class(new_coord, -self.player_color))
+                self.white_pieces.append(piece_class(new_coord, 1))
         elif capture != 0:
             if self.player_color == 1: #Undoing captures
-                self.black_pieces.append(piece_class(new_coord, -self.player_color))
+                self.black_pieces.append(piece_class(new_coord, -1))
             else:
-                self.white_pieces.append(piece_class(new_coord, -self.player_color))
+                self.white_pieces.append(piece_class(new_coord, 1))
 
         self.get_piece(new_coord, self.player_color).pos = old_coord #Change the coord for the piece that was moved
         coord_dif = new_coord-old_coord
@@ -835,4 +845,4 @@ class Game:
                 self.board[7] = -4
                 self.board[5] = 0
                 self.get_piece(5, -1).pos = 7 #Move the black rook
-        self.king_check
+        self.king_check()
