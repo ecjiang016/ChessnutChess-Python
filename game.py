@@ -776,3 +776,52 @@ class Game:
                 return 0 
             else:
                 return None
+        
+    def undo_move(self, old_piece, new_piece):
+        """
+        old_coord: same as the move class
+        new_coord: same as the move class
+        old_piece: The color and type of the piece that used to be on new_coord
+        new_coord: The color and type of the piece that is now on new_coord
+        """
+        piece_class = {1:Pawn, 2:Knight, 3:Bishop, 4:Rook, 5:Queen}[abs(old_piece)]
+        #Add pawn for En Passant
+        if old_piece == 0 and abs(new_piece) == 1 and (self.old_coord % 8 != self.new_coord % 8):
+            replaced_piece = self.new_coord+(self.player_color*8)
+            self.board[replaced_piece] = -self.player_color
+            if self.player_color == 1:
+                self.black_pieces.append(piece_class(self.old_coord, -self.player_color))
+            else:
+                self.white_pieces.append(piece_class(self.new_coord, -self.player_color))
+        elif old_piece != 0:
+            if self.player_color == 1: #Undoing captures
+                self.black_pieces.append(piece_class(self.new_coord, -self.player_color))
+            else:
+                self.white_pieces.append(piece_class(self.new_coord, -self.player_color))
+
+        self.get_piece(self.new_coord, self.player_color).pos = self.old_coord #Change the coord for the piece that was moved
+        coord_dif = self.new_coord-self.old_coord
+        self.board[self.new_coord] = old_piece
+        self.board[self.old_coord] = new_piece
+        
+        if abs(new_piece) == 6 and abs(coord_dif) == 2: #Undo castling
+            if self.new_coord == 58 and self.old_coord == 60 and new_piece == 6: #Left White Castle
+                self.board[56] = 4
+                self.board[59] = 0
+                self.get_piece(59, 1).pos = 56 #Move the white rook
+
+            elif self.new_coord == 62 and self.old_coord == 60 and new_piece == 6: #Right White Castle
+                self.board[63] = 4
+                self.board[61] = 0
+                self.get_piece(61, 1).pos = 63 #Move the white rook
+
+            elif self.new_coord == 2 and self.old_coord == 4 and new_piece == -6: #Left Black Castle
+                self.board[0] = -4
+                self.board[3] = 0
+                self.get_piece(3, -1).pos = 0 #Move the black rook
+
+            elif self.new_coord == 6 and self.old_coord == 4 and new_piece == -6: #Right Black Castle
+                self.board[7] = -4
+                self.board[5] = 0
+                self.get_piece(5, -1).pos = 7 #Move the black rook
+        self.king_check
