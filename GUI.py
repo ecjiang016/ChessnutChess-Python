@@ -145,6 +145,7 @@ def single_move(game):
     clock = pygame.time.Clock()
     board_surface = create_background_board(np.zeros((8, 8)), (0, 0, 0))
     selected_piece = 0, -1, -1
+    drop_pos = None
 
     while True:
         piece, x, y = get_square_under_mouse(np.array(game.board).reshape(8, 8))
