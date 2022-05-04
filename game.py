@@ -12,7 +12,6 @@ Piece type numbers:
 Positive for white, negative for Black
 """
 
-from multiprocessing.sharedctypes import Value
 import numpy as np
 
 def class_to_piece_number(class_name):
