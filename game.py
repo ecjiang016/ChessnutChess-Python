@@ -524,7 +524,7 @@ class Game:
             Pawn(8, -1), Pawn(9, -1), Pawn(10, -1), Pawn(11, -1), Pawn(12, -1), Pawn(13, -1), Pawn(14, -1), Pawn(15, -1),  
             ]
         self.castling = [True, True, True, True] #Left White, Right White, Left Black, Right Black
-        self.en_passant = None
+        self.en_passant = [None]
         self.last_move = None
         self.check_location = []
         self.player_color = 1
@@ -646,15 +646,15 @@ class Game:
 
         #Pass En passant status to pawns
         pawn_double_push = abs(new_coord - old_coord) == 16 if abs(piece) == 1 else None
+        self.en_passant.append(new_coord if pawn_double_push else None)
         if self.player_color == -1: #Update pawns
             for i in range(len(self.white_pieces)):
                 if self.white_pieces[i].__class__ == Pawn:
-                    self.white_pieces[i].en_passant = new_coord if pawn_double_push else None
-
+                    self.white_pieces[i].en_passant = self.en_passant[-1]
         else:
             for i in range(len(self.black_pieces)):
                 if self.black_pieces[i].__class__ == Pawn:
-                    self.black_pieces[i].en_passant = new_coord if pawn_double_push else None
+                    self.black_pieces[i].en_passant = self.en_passant[-1]
 
 
         #Update piece object location
@@ -811,9 +811,9 @@ class Game:
             replaced_piece = new_coord+(self.player_color*8)
             self.board[replaced_piece] = -self.player_color
             if self.player_color == 1:
-                self.black_pieces.append(piece_class(old_coord, -1))
+                self.black_pieces.append(Pawn(replaced_piece, -1))
             else:
-                self.white_pieces.append(piece_class(new_coord, 1))
+                self.white_pieces.append(Pawn(replaced_piece, 1))
         elif capture != 0:
             if self.player_color == 1: #Undoing captures
                 self.black_pieces.append(piece_class(new_coord, -1))
@@ -845,4 +845,17 @@ class Game:
                 self.board[7] = -4
                 self.board[5] = 0
                 self.get_piece(5, -1).pos = 7 #Move the black rook
+
+        #Reset En Passant stuff
+        del self.en_passant[-1]
+        if self.player_color == -1: #Update pawns
+            for i in range(len(self.white_pieces)):
+                if self.white_pieces[i].__class__ == Pawn:
+                    self.white_pieces[i].en_passant = self.en_passant[-1]
+        else:
+            for i in range(len(self.black_pieces)):
+                if self.black_pieces[i].__class__ == Pawn:
+                    self.black_pieces[i].en_passant = self.en_passant[-1]
+
+
         self.king_check()
