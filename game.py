@@ -832,11 +832,22 @@ class Game:
                 self.castling[0] = True
                 self.get_piece(59, 1).pos = 56 #Move the white rook
 
+                for i in range(len(self.white_pieces)): #Update white king castling status
+                    if self.white_pieces[i].__class__ == King:
+                        self.white_pieces[i].rook_castle = self.castling[0:2]
+                        break
+
             elif new_coord == 62 and old_coord == 60 and moved_piece == 6: #Right White Castle
                 self.board[63] = 4
                 self.board[61] = 0
                 self.castling[1] = True
                 self.get_piece(61, 1).pos = 63 #Move the white rook
+
+                for i in range(len(self.white_pieces)): #Update white king castling status
+                    if self.white_pieces[i].__class__ == King:
+                        self.white_pieces[i].rook_castle = self.castling[0:2]
+                        break
+
 
             elif new_coord == 2 and old_coord == 4 and moved_piece == -6: #Left Black Castle
                 self.board[0] = -4
@@ -844,11 +855,21 @@ class Game:
                 self.castling[2] = True
                 self.get_piece(3, -1).pos = 0 #Move the black rook
 
+                for i in range(len(self.black_pieces)): #Update black king castling status
+                    if self.black_pieces[i].__class__ == King:
+                        self.black_pieces[i].rook_castle = self.castling[2:4]
+                        break
+
             elif new_coord == 6 and old_coord == 4 and moved_piece == -6: #Right Black Castle
                 self.board[7] = -4
                 self.board[5] = 0
                 self.castling[3] = True
                 self.get_piece(5, -1).pos = 7 #Move the black rook
+
+                for i in range(len(self.black_pieces)): #Update black king castling status
+                    if self.black_pieces[i].__class__ == King:
+                        self.black_pieces[i].rook_castle = self.castling[2:4]
+                        break
 
         #Reset En Passant stuff
         del self.en_passant[-1]
